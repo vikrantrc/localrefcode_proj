@@ -1,0 +1,1910 @@
+<?php
+//function stock_cron() {
+//  watchdog('cron', 'Cron called stock_calculate_price .', array(), WATCHDOG_NOTICE);
+//  stock_calculate_price();
+//}
+ 
+/**
+ * Implements hook_menu().
+ */
+function stock_menu() {
+
+  $items['create_stock_template'] = array(
+	'title' => 'Create A Distibutor',
+    'description' => 'Create A Distibutor',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('stock_create_template'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['add_stock'] = array(
+	'title' => 'Add Stock',
+    'description' => 'Add stock feed',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('stock_add_feed'),
+    'access arguments' => array('access content'),   
+  );
+  $items['stock_ajax_save_template'] = array(
+	'title' => 'Create Stock Template',
+    'description' => 'Create stock template',
+    'page callback' => 'stock_ajax_save_template',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['stock/search'] = array(
+    'title' => 'Download Processed Stock Feed',
+    'page callback' => 'stock_filter_download_feed',
+    'access callback' => TRUE,
+    'file' => 'stock_download.inc'
+  );
+  
+  $items['stock/insert/minslaisbn'] = array(
+    'title' => 'Insert isbns to calculate min SLA',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('stock_insert_isbn_to_cal_minsla'),
+    'access arguments' => array('access content'),     
+    'file' => 'stock_download.inc'
+  );
+  
+  $items['stock/download/minsla'] = array(
+    'title' => 'Downlaod Min sla',
+    'page callback' => 'stock_download_min_sla',
+    'access callback' => TRUE,
+    'access arguments' => array('access content'),
+    'file' => 'stock_download.inc'
+  );
+  
+    $items['stock/download/range/%/%'] = array(
+    'title' => 'Downlaod Min sla by range',
+    'page callback' => 'stock_download_min_sla_by_range',
+    'access callback' => TRUE,
+    'access arguments' => array('access content'),
+    'file' => 'stock_download.inc'
+  );
+  
+  $items['stock/discount/sheet'] = array(
+    'title' => 'Discount Sheet',
+    'description' => 'Discount Sheet',
+    'page callback' => 'stock_download_discount_sheet',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  $items['stock/broken/records'] = array(
+    'title' => 'Broken Records',
+    'description' => 'Here you can download stock broken records.',
+    'page callback' => 'stock_download_broken_records',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+   $items['stock/manage/discount'] = array(
+    'title' => 'Manage Discount',
+    'description' => 'Manage Discount',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('stock_manage_discount'),
+    'access arguments' => array('access content'), 
+    'file' => 'stock_discount.inc',   
+  );
+  
+  $items['stock/price/updater'] = array(
+    'title' => 'price updater',
+    'description' => 'price updater',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('stock_price_updater'),
+    'access arguments' => array('access content'),   
+  );
+  $items['stock/last_updloded/list'] = array(
+    'title' => 'Last Uploded',
+    'description' => 'last uploded list',
+    'page callback' => 'stock_download_last_uploded',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'stock_download.inc'
+);
+  $items['stock/isbn/qc2'] = array(
+  'title' => 'QC ISBN Version 2', 
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('stock_isbn_qc2'),
+  'access arguments' => array('access content'),
+  'type' => MENU_CALLBACK,
+  );
+    $items['stock/isbn/qc'] = array(
+  'title' => 'QC ISBN ', 
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('stock_isbn_qc'),
+  'access arguments' => array('access content'),
+  'type' => MENU_CALLBACK,
+  );
+   
+  $items['stock/isbn/search/result/%'] = array(
+  'title' => 'ISBN QC', 
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('stock_isbn_search_results'),
+  'access arguments' => array('access content'),
+  'file' => 'stock_download.inc' ,
+  //'type' => MENU_CALLBACK,
+  );
+  $items['sales/download/isbn_qc/result/%/%'] = array(
+  'title' => 'ISBN QC DOWNLOAD', 
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('stock_isbn_search_results'),
+  'access arguments' => array('access content'),
+  'file' => 'stock_download.inc' ,
+  
+  );
+    $items['stock/update/currency'] = array(
+  'title' => 'Update GOC Rates', 
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('stock_update_currency'),
+  'access arguments' => array('access content'),
+  
+  );
+  $items['stock/update/currency/template'] = array(
+  'title' => 'template', 
+  'page callback' => 'stock_goc_template',
+ 'page arguments' => array('stock_goc_template'),
+  'access arguments' => array('access content'),
+  
+  );
+  return $items;
+  
+  //stock/isbn/qc2
+}
+ 
+function stock_create_template_fn(){
+	return render(drupal_get_form('stock_create_template'));
+}
+
+
+/**
+ * Implements callback of stock/update/currency/
+ */
+
+function stock_update_currency(){
+  $file_cat_ref='stock/update/currency/template';
+  $form['stock_goc'] = array(
+    '#type' => 'file',
+    '#title' => t('Select GOC rates File'),
+    '#size' => 22,
+    '#description' => '<h3>To download latest upload template file click ' .l('Here', $file_cat_ref).'</h3>',
+  );
+  
+  $form['stock_goc_report'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Upload'),
+  );
+  	$form['wrapper'] = array(
+		'#prefix'  => '<div id="ad_cur"><a href="procured/pack#overlay=admin/structure/taxonomy/currency/add">Add new Currency</a>',
+		'#suffix'  => '</div>',
+		); 
+ 
+  return $form;
+}
+/**
+ * Implements hook_validate
+ */
+function stock_update_currency_validate($form , &$form_state){
+	$file = file_save_upload('stock_goc', array('file_validate_extensions' => array('xls xlsx'),));
+	require_once 'excel_reader2.php';
+        
+	if ($file) {
+      if ($file = file_move($file, 'public://')) {
+        $form_state['values']['file'] = $file;
+      }else {
+        form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+      }
+    }
+}
+/**
+ * Implements submit of stock/update/currency/
+ */
+
+function stock_update_currency_submit($form, &$form_state){
+    // print_r($form_state);die;
+  include 'simple/simplexlsx.class.php';
+  require_once 'excel_reader2.php';
+
+  $file = $form_state['values']['file'];
+  $file->status = FILE_STATUS_PERMANENT;
+   
+  $filepath = drupal_realpath($file->uri);
+  //print_r($ext);die; 
+  ###################mapping of excel readers###################
+  $ext = pathinfo($filepath, PATHINFO_EXTENSION);
+  ##############################################################
+// print_r($ext);die; 
+ $output = array();
+  
+  
+  //extension logic starts here
+   $xlsx_rw = NULL;
+   
+   if($ext == 'xls'){
+      $xlsx_rw = 2;
+      $data = new Spreadsheet_Excel_Reader($filepath);
+      $numrows = count($data->sheets[0]['cells']);
+      $numcols = $data->sheets[0]['numCols']; 
+    //  print_r($numrows);die; 
+       //xls start from zero 0
+      for($row = 2; $row <= $numrows; $row++){
+          for ($col = 1; $col <= $numcols; $col++) {
+             $output[$row][$col] = $data->val($row, $col, $sheet = 0);            
+          }          
+          //print_r($output[$row]);die;
+      }
+    }else if($ext == 'xlsx'){
+      $xlsx_rw = 1;
+      $data = new SimpleXLSX($filepath);
+      $test =  list($numcols, $numrows) = $data->dimension();
+      $info = $data->rows();
+      //xlsx start from zero 0
+      for($r = 1; $r < $numrows; $r++){
+        $row = $r;  
+        foreach($info[$r] as $col => $cols){
+         $output[$row][$col+1] = $cols;        
+        }  
+        
+        
+      }
+    }
+    $s_count = 0;
+  
+    foreach($output as $cky => $csv_values){
+    
+    if($cky > 0 && !empty($csv_values[1])){  
+    
+    $currency_name= check_plain($csv_values[1]);
+    $currency_value=check_plain($csv_values[2]);
+    
+   //print_r($currency_name); 
+   //print_r($currency_value);die;
+    
+  $get_tid=db_select('taxonomy_term_data','td');
+  $get_tid->fields('td',array('tid'));
+  $get_tid->condition('description',$currency_name,'=');
+  $tid_result=$get_tid->execute()->fetchAll();
+  // print_r($tid_result);die;
+   foreach($tid_result as $des){
+    //print_r();die;
+    $des_got=$des->tid;
+    $update_goc=db_update('field_data_field_value');
+    $update_goc->condition('entity_id',$des_got,'=');
+    $update_goc->fields(array('field_value_value' => $currency_value));
+    $update_goc->execute();
+   }
+   }
+      
+  } drupal_set_message("New GOC rates updated successfully");
+ }
+ 
+ function stock_goc_template(){
+    
+    	$header = array('currency_name','currency_rate');
+        $get_currency=db_select('taxonomy_term_data','td');
+        $get_currency->addExpression('Distinct(td.description)','des');
+        $get_currency_result=$get_currency->execute()->fetchAll();
+        foreach($get_currency_result as $res){
+        $des=$res->des;
+        $get_cur_tid=db_select('taxonomy_term_data','tv');
+        $get_cur_tid->fields('tv',array('tid'));
+        $get_cur_tid->condition('description',$des);
+        $get_cur_tid_res=$get_cur_tid->execute()->fetchAll();
+        $get_cur_tid->range(0,1);
+        $newArray = array();
+        
+      foreach($get_cur_tid_res as $entity) {
+      if(!isset($newArray[$entity->tid])){
+         $newArray[$entity->tid] = array();
+       }
+      $newArray[$entity->tid][] = $entity->tid;
+      }
+      foreach($newArray as $k=>$v){
+       $tid_got=($v[0]); 
+        }
+        $get_cur_val=db_select('field_data_field_value','fv');
+        $get_cur_val->fields('fv',array('field_value_value'));
+        $get_cur_val->condition('entity_id',$tid_got);
+        $get_cur_val_res=$get_cur_val->execute()->fetchField();
+        if($get_cur_val_res!='' && $res->des !=''){
+        $row=array();
+        $row[]=$res->des;
+        $row[]=$get_cur_val_res;
+        $xls_content_row .= implode("\t", array_values($row)) . "\r\n"; 
+        }
+
+       }    $xls_content_header .= implode("\t", array_values($header));
+            $xls_content = $xls_content_header."\n".$xls_content_row;
+            $filename = 'template-GOC'; 
+            header("Content-type: text/plain; charset=UTF-8");
+            header("Content-Disposition: attachment; filename=$filename");
+            header("Content-Type: application/vnd.ms-excel"); 
+            header("Pragma: no-cache");
+            header("Expires: 0");
+            print $xls_content;
+            exit();   
+            return TRUE;
+    }
+/**
+ * Implements callback of stock/isbn/qc
+ */
+ function stock_isbn_qc(){
+    	 $form['isbn'] = array(
+		'#type' => 'textarea', 
+        '#prefix' => '<div class="isbn-filter-option">',
+        '#suffix' => '</div>',
+		'#title' => t('Enter ISBN to Check (You can paste UPTO 400 isbn at a time seperated by a line)'),
+		'#required'=> TRUE,
+		);
+	 
+		$form['invoice_no_submit'] = array(
+		'#type' => 'submit', 
+		'#value' => t('Go'),	
+	 	);
+		$form['wrapper'] = array(
+		'#prefix'  => '<div id="isbn_search_preview_area">',
+		'#suffix'  => '</div>',
+		); 
+		
+						 
+    return $form;
+ }
+  function stock_isbn_qc_submit($form,&$form_state){
+  $isbnqc = trim($form_state['values']['isbn']);
+   
+  drupal_goto('stock/isbn/search/result'.'/'.$isbnqc);
+  
+  }
+  
+  /**
+ * Implements callback of stock/isbn/qc2
+ */
+ function stock_isbn_qc2(){
+    	 $form['isbn'] = array(
+		'#type' => 'textarea', 
+        '#prefix' => '<div class="isbn-filter-option">',
+        '#suffix' => '</div>',
+		'#title' => t('Enter ISBN to Download Results(Min 2500 tested)'),
+		'#required'=> TRUE,
+		);
+	 
+		$form['invoice_no_submit'] = array(
+		'#type' => 'submit', 
+		'#value' => t('Download'),	
+	 	);
+		$form['wrapper'] = array(
+		'#prefix'  => '<div id="isbn_search_preview_area">',
+		'#suffix'  => '</div>',
+		); 
+		
+						 
+    return $form;
+ }
+  function stock_isbn_qc2_submit($form,&$form_state){
+  $isbnqc_get = trim($form_state['values']['isbn']);
+ 
+  $isbnqcex=explode("\n",$isbnqc_get);
+  // print_r($isbnqcex);die;
+   foreach($isbnqcex as $isbnqc){
+ 
+     $isbnqci =  trim(trim($isbnqc,"\x00..\x1F"));
+    //print_r($isbnqc);die;
+  $header = array('ISBN','SOURCE','Quantity',
+  'MRP in Stock','Title','mrp inr catalog','listing price catalog', 'Last Uploded(m-d-Y | H:i:s)');
+  $get_isbn_detail=db_select('stock','s');
+  $get_isbn_detail->join('field_data_field_distributor_name','dn','dn.entity_id = s.source');
+  $get_isbn_detail->leftjoin('catalog','c','c.isbn13 = s.isbn13');
+  $get_isbn_detail->fields('c',array('title','mrp_inr','listing_price'));
+  $get_isbn_detail->fields('dn',array('field_distributor_name_value'));
+  $get_isbn_detail->fields('s',array('source','qty','dtime','isbn13','price'));
+  $get_isbn_detail->condition('s.isbn13',$isbnqci,'=');
+  $get_qc=$get_isbn_detail->execute()->fetchAll();
+    foreach($get_qc as $rec) {
+    if(!isset($newArray[$rec->isbn13])){
+    $newArray[$rec->dtime] = array($rec->isbn13,$rec->dtime,$rec->field_distributor_name_value,
+    $rec->qty,$rec->price,$rec->title,$rec->mrp_inr,$rec->listing_price);
+    }
+    }
+   // print_r($newArray);die;
+  //$old_mrp=$newArray->mrp_inr;
+    $row = array();
+  
+    $old_mrp=($newArray[$rec->dtime][4]); 
+    foreach($newArray as $DTIME=>$dta){
+    $time=$dta[1];
+    $datetime=date('m-d-Y || H:i:s',$time);
+	$row = array();
+
+    $row[]=$dta[0];
+    $row[]=$dta[2];
+  	$row[] = "<input type='number' id='qty_over' value='".$dta[3]."'/>" ;
+    $row[]=$dta[4];
+    $row[]=$dta[5];
+    $row[]=$dta[6];
+    $row[]=$dta[7];
+	$row[] = $datetime;
+    $rows[] = $row;
+    $rows_all .=$row;
+     
+ 
+        $row=str_replace("<input type='number' id='qty_over' value='".$dta[3]."'/>",$dta[3],$row);
+      $xls_content_row .= implode("\t", array_values($row)) . "\r\n";  
+      //print_r($xls_content_row);die;
+   } 
+  
+     }
+      $xls_content_header = implode("\t", array_values($header));
+     $xls_content_row_dup= explode("\n", $xls_content_row);
+ //   print_r($xls_content_row_dup);die;
+  
+     $xls_content_row_clean=arrayUniqueVersion2($xls_content_row_dup);
+     foreach($xls_content_row_clean as $xls_content_row_clean_dwn){
+     $xls_contents.= $xls_content_row_clean_dwn;
+    }
+     foreach($xls_contents as $key=>$val){
+     //print_r($val[0]); 
+     $sort_col[$key] = $row[$val[0]];
+     
+   }
+    array_multisort($sort_col, SORT_ASC, $xls_contents);
+   //print_r($xls_contents);die;
+    
+  
+    $xls_content= $xls_content_header."\n".$xls_contents;
+    $filename = 'QC_RESULTS-Version-2'.date("d_m_Y"); 
+    header("Content-type: text/plain; charset=UTF-8");
+    header("Content-Disposition: attachment; filename=$filename");
+    header("Content-Type: application/vnd.ms-excel"); 
+    header("Pragma: no-cache");
+    header("Expires: 0");
+    print $xls_content;
+    exit();   
+    return TRUE;
+   
+ 
+  
+  }
+ 
+/**
+ * Implements callback of create_stock_template
+ */
+function stock_create_template(){
+  drupal_add_js(drupal_get_path('module', 'stock') . '/stock.js');
+  $form['create_distributor'] = array(
+	  '#type' => 'fieldset',
+	  '#title' => t('Create Distributor'),
+	  '#weight' => 0,
+	  '#collapsible' => TRUE,
+	  '#collapsed' => FALSE,
+	);
+  $form['create_distributor']['template_name'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Template Name'), 
+		'#size' => 60, 
+		'#maxlength' => 128, 
+		'#required' => TRUE,
+	);
+  $form['create_distributor']['email'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Email'), 
+		'#size' => 60, 
+		'#maxlength' => 128, 
+		'#required' => TRUE,
+	);
+  $form['create_distributor']['frequency'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Frequency in days'), 
+		'#size' => 60, 
+		'#maxlength' => 128, 
+		'#required' => TRUE,
+	);
+ $form['create_distributor']['phone_no'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Phone no'), 
+		'#size' => 60, 
+		'#maxlength' => 128, 
+	);
+ $form['create_distributor']['address'] = array(
+		'#type' => 'textarea', 
+		'#title' => t('Address'), 
+		'#size' => 60, 
+		'#maxlength' => 128, 
+	);
+ $form['create_distributor']['stock_file'] = array(
+		'#type' => 'file',
+		'#title' => t('Select test file'),
+		'#required' => TRUE,
+		'#title_display' => 'visible',
+		'#size' => 22,
+		'#theme_wrappers' => array(),
+	);
+	$form['read_excel_file'] = array(
+		'#type' => 'submit', 
+		'#value' => t('Preview'),
+		'#limit_validation_errors' => array(),
+		'#ajax' => array(
+			'callback' => 'stock_excel_preview',
+			'wrapper' => 'stock_excel_preview_area',
+			'method' => 'replace',
+			'effect' => 'fade',
+		  ),
+	);
+	 $form['wrapper'] = array(
+    '#prefix'  => '<div id="stock_excel_preview_area">',
+    '#suffix'  => '</div>',
+  );
+	return $form;
+} 
+
+/**
+ * Implements callback of add_stock
+ */
+function stock_add_feed(){
+	$options=stock_get_all_distributors();
+ 
+	$form['template_name'] = array(
+		'#type' => 'select',
+		'#title' => t('Select Template'), 
+		'#required' => TRUE,
+		'#options' => $options,
+    '#ajax' => array(
+    'event' => 'change',
+      'wrapper' => 'mapping-table',
+      'callback' => 'stock_generate_mapping',
+      'method' => 'replace',
+    ),
+	);
+  $form['check'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Do not over ride'),
+  );
+	$form['stock_feed_file'] = array(
+		'#type' => 'file',
+		'#title' => t('Select Stock Discount file'),
+		'#size' => 22,
+	);
+	$form['read_excel_file'] = array(
+		'#type' => 'submit', 
+		'#value' => t('Upload'),
+		
+	);
+  $form['markup'] = array(
+		'#type' => 'markup', 
+		'#markup' => '<div id="mapping-table"></div>',
+		
+	);
+	return $form;
+}
+
+/**
+ * Implements callback of stock/price/updater
+ */
+function stock_price_updater(){
+  $form['markup'] = array(
+    '#type' => 'markup',
+    '#markup' => '<h2>Please run the updater to recalculate the prices</h2>',
+  );
+	$form['recalculate'] = array(
+		'#type' => 'submit', 
+		'#value' => t('recalculate'),
+		
+	);
+	return $form;
+}
+/**
+ * Implements callback of stock_ajax_save_template
+ */
+function stock_ajax_save_template(){
+	global $user;
+	$template_name = $_POST['template_name'];
+	$email = $_POST['email'];
+	$frequency = $_POST['frequency'];
+    $phoneno = $_POST['phone_no'];
+    $address = $_POST['address'];
+	$isbn13 = $_POST['isbn13'];
+	$qty = $_POST['qty'];
+	$price = $_POST['price'];
+	$currency = $_POST['currency'];
+	$disc = $_POST['disc'];
+	$newNode = (object) NULL;
+	$newNode->vid = NULL;
+	$newNode->type = 'distributor';
+	$newNode->title = $template_name;
+	$newNode->uid = $user->uid;	
+	$newNode->status = 1;	
+	$newNode->comment = 0;
+	$newNode->promote = 0;
+	$newNode->moderate = 0;
+	$newNode->sticky = 0;
+	$newNode->format = 2;
+	$newNode->language = 'en';
+	$newNode->field_distributor_name['und'][0]['value'] = check_plain($template_name);
+	$newNode->field_email['und'][0]['value'] = check_plain($email);
+	$newNode->field_frequency['und'][0]['value'] = check_plain($frequency);
+	$newNode->field_isbn13_map['und'][0]['value'] = check_plain($isbn13);
+	$newNode->field_qty_map['und'][0]['value'] = check_plain($qty);
+	$newNode->field_price_map['und'][0]['value'] = check_plain($price);
+	$newNode->field_discount_map['und'][0]['value'] = check_plain($disc);
+	$newNode->field_currency_map['und'][0]['value'] = check_plain($currency);
+    $newNode->field_phone_no['und'][0]['value'] = check_plain($phoneno);
+    $newNode->field_address['und'][0]['value'] = check_plain($address);
+	$res = node_save($newNode);
+    $vid = taxonomy_vocabulary_machine_name_load('discount');
+    $term = new stdClass();
+    $term->name = $template_name;
+    $term->vid = $vid->vid;
+    taxonomy_term_save($term);
+	die;
+	
+}
+
+/**
+ * Implements callback of stock/broken/records
+ */
+function stock_download_broken_records(){
+	$header = array('ISBN','SOURCE','QUANTITY','PRICE','DISCOUNT','CURRENCY','ERROR');
+	$query = db_select('stockrejected','s');
+	$query->fields('s',array('isbn13','source','qty','price','discount','currency','error'));
+	$results = $query->execute()->fetchAll();
+	foreach($results as $result){
+		$xls_content_row .= implode("\t", array_values((array)$result)) . "\r\n";
+	}
+	$xls_content_header = implode("\t", array_values($header));
+	$xls_content = $xls_content_header."\n".$xls_content_row;
+	$filename = 'Error_list_'.date("d_m_Y"); 
+	header("Content-type: text/plain; charset=UTF-8");
+	header("Content-Disposition: attachment; filename=$filename");
+	header("Content-Type: application/vnd.ms-excel"); 
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	print $xls_content;
+	exit(); 
+	
+}
+
+/**
+ * Implements callback of stock/discount/sheet
+ */
+function stock_download_discount_sheet($form,&$form_state){
+	//print_r("sdg");die;
+    $header = array('ISBN','SOURCE','QUANTITY','PRICE','DISCOUNT','CURRENCY','ERROR');
+	$query = db_select('stockrejected','s');
+	$query->fields('s',array('isbn13','source','qty','price','discount','currency','error'));
+	$results = $query->execute()->fetchAll();
+	foreach($results as $result){
+		$xls_content_row .= implode("\t", array_values((array)$result)) . "\r\n";
+	}
+	$xls_content_header = implode("\t", array_values($header));
+	$xls_content = $xls_content_header."\n".$xls_content_row;
+	$filename = 'Error_list_'.date("d_m_Y"); 
+	header("Content-type: text/plain; charset=UTF-8");
+	header("Content-Disposition: attachment; filename=$filename");
+	header("Content-Type: application/vnd.ms-excel"); 
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	print $xls_content;
+	exit(); 
+	
+}
+
+/**
+ * Implements hook_validate
+ */
+function stock_add_feed_validate($form , &$form_state){
+	$file = file_save_upload('stock_feed_file', array('file_validate_extensions' => array('xls xlsx'),));
+	require_once 'excel_reader2.php';
+        
+	if ($file) {
+      if ($file = file_move($file, 'public://')) {
+        $form_state['values']['file'] = $file;
+      }else {
+        form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+      }
+    }
+}
+
+/**
+ * Implements hook_submit
+ */
+function stock_price_updater_submit(){
+  stock_calculate_price();
+}
+
+/**
+ * Implements hook_submit
+ */
+function stock_add_feed_submit($form , &$form_state){      
+  $nid="";
+  include 'simple/simplexlsx.class.php';
+  require_once 'excel_reader2.php';
+  $nid = $form_state['values']['template_name'];
+ 
+  $node = node_load($nid);
+  $isbn13_map = $node->field_isbn13_map['und'][0]['value'];
+  $qty_map = $node->field_qty_map['und'][0]['value'];
+ 
+  $price_map = $node->field_price_map['und'][0]['value'];
+  
+  $discount_map = $node->field_discount_map['und'][0]['value'];
+  $currency_map = $node->field_currency_map['und'][0]['value'];
+  $currency = $output[$row][$currency_map];
+  $file = $form_state['values']['file'];
+  $file->status = FILE_STATUS_PERMANENT;
+  $dont_override = $form_state['values']['check'];
+  $filepath = drupal_realpath($file->uri);
+  
+  ###################mapping of excel readers###################
+  $ext = pathinfo($filepath, PATHINFO_EXTENSION);
+  ##############################################################
+  $updated_count = $new_count = $rejected_count = 0;
+  $cur = stock_get_all_currencies();   
+  $result = db_truncate('stockrejected')->execute(); 
+  $objectionable_qty_words = stock_get_all_objectionable_qty_words();  
+  if($dont_override != 1){
+    stock_clear_all_stock_of_distributor($nid);  
+  }  
+  $output = array();
+  
+  
+  //extension logic starts here
+   $xlsx_rw = NULL;
+   
+   if($ext == 'xls'){
+      $xlsx_rw = 2;
+      $data = new Spreadsheet_Excel_Reader($filepath);
+      $numrows = count($data->sheets[0]['cells']);
+      $numcols = $data->sheets[0]['numCols'];  
+       //xls start from zero 0
+      for($row = 2; $row <= $numrows; $row++){
+          for ($col = 1; $col <= $numcols; $col++) {
+             $output[$row][$col] = $data->val($row, $col, $sheet = 0);            
+          }          
+          //print_r($output[$row]);die;
+      }
+    }else if($ext == 'xlsx'){
+      $xlsx_rw = 1;
+      $data = new SimpleXLSX($filepath);
+      $test =  list($numcols, $numrows) = $data->dimension();
+      $info = $data->rows();
+      //xlsx start from zero 0
+      for($r = 1; $r < $numrows; $r++){
+        $row = $r;  
+        foreach($info[$r] as $col => $cols){
+         $output[$row][$col+1] = $cols;        
+        }  
+        
+        //
+      }
+    }
+    //echo $xlsx_rw .'----'. $numrows; die;
+  //extension logic ends here
+  
+  for($row = $xlsx_rw; $row <= $numrows; $row++){
+    $rejected = false;
+    $rejected_reason = '';
+    $row_xl = array();
+    $currency = $output[$row][$currency_map];
+    
+    //ISBN_validation starts
+    $isbn13 = $output[$row][$isbn13_map];
+  //  echo($isbn13);
+    $isbn13=  str_replace('-', '', $isbn13);
+    $isbn13=  str_replace(' ', '', $isbn13);
+    $isbn13=  str_replace(',', '', $isbn13);
+    $isbn13=  str_replace('=', '', $isbn13);
+    $isbn13=  str_replace('ISBN', '', $isbn13);
+    $isbn13=  str_replace('.', '', $isbn13);
+    $isbn13=  str_replace(':', '', $isbn13);
+    $isbn13=  str_replace('*', '', $isbn13);
+   // $isbn13=  str_replace('A', '', $isbn13);
+    //$isbn13=  str_replace('P', '', $isbn13);
+    $isbn13=  str_replace('.:', '', $isbn13);
+    $isbn13=  str_replace('`', '', $isbn13);
+    $isbn13=  str_replace('[SET]', '', $isbn13);
+    $quotes="'";
+    $isbn13=  str_replace($quotes, '', $isbn13);
+    //echo($isbn13); ;
+   // echo $isbn13;
+  //  $isbn13= rmNewline($isbn13);
+  //  echo $isbn13;die;
+ 
+    $length_isbn = strlen($isbn13);
+ 
+    if(empty($isbn13)){
+        $rejected = true;
+        $rejected_reason .= 'ISBN is blank || ';
+    }else if($length_isbn==7 || $length_isbn==8 ||$length_isbn==9){  //$length_isbn<10 || removed for delhi book store and savera || $length_isbn== 11 || $length_isbn == 12
+    //print $isbn13;echo '<pre>';
+        $rejected = false; 
+    ###########DBS isbn 10 conversion blocked#########        
+    }else if($length_isbn == 10 && $nid!=2642){
+         $isbn13 = isbn10_to_13($isbn13);
+         // echo($isbn13);die;
+    }else if($length_isbn == 10 && $nid==2642){
+        $rejected = false;
+    } 
+    ##################################################
+     else if($length_isbn == 13 ||  $length_isbn == 8){   //for dbs and savera
+        $rejected = false;
+    }
+     else if ($length_isbn>13){
+    	 $rejected = true;
+         $rejected_reason .= 'ISBN Length Incorrect || ';
+     }else{
+  		$rejected = true;
+    }
+    
+    //ISBN_validation ends
+    ///////////////////////////////////////////////////////////////
+    //QUANTITY_valdation starts		
+ 
+    $qty = $output[$row][$qty_map];	//$qty_map
+    $qty=  str_replace(' Copies', '', $qty);
+    $qty=  str_replace(' cpy', '', $qty);
+    $qty =str_replace(' Pcs', '', $qty);
+    
+    // echo $qty.'-'.$isbn13.'<br/>'; 
+ 
+	//	$qty = preg_replace("/[^0-9]/","",$qty);
+ 
+     $qty=str_replace('[$]','',$qty);
+
+   if($qty_map<0)
+   {
+     //print_r($qty_map);die;
+     $qty = 20;
+   }else if(strstr($qty,'SET')){
+		$temp = explode('SET',$qty);
+		$qty = intval($temp[0]);
+      
+   	}else if($qty == 'OUT OF PRINT' || $qty=='O/P'|| $qty=='O/S'|| $qty=='In Press'|| $qty=='fc'||$qty=='OP'||
+             $qty == 'OUT OF STOCK' || $qty == 'No'  || $qty == 'Forthcoming' || $qty == 'NON-AVAILABLE'|| 
+             $qty == 'N/A' || $qty == '#N/A' || $qty < 0 || $qty=='NOT YET PUBLISH' || $qty=='Out Of Stock' ||
+             $qty=='Under Binding' || $qty== 'out of stock-New Edition' || $qty=='Not Available'||$qty=='NAV'){
+             $qty = 0;
+   	}else if($qty == '3+' || $qty == '>=10'){
+   	  $qty = 10;
+	   
+   	}elseif($qty == 'Available' || $qty=='greenlight' ||$qty=='A'|| $qty=='Y'|| $qty == 'Yes' || 
+     $qty=='In Stock' || $qty_map<0 || $qty=='STOCK' || $qty=='IN STOCK' || $qty=='new' || $qty == 'AVAILABLE'
+     || $qty=='20+' || $qty=='AV'|| $qty=='New Releases'){	   
+  		$qty = 20;		
+	 }
+		
+		else if($qty == 0){
+      $qty = 0;  
+    }else if($qty == ''){
+  		$rejected = true;
+  		$rejected_reason .= 'QUANTITY is empty || ';       
+   	}
+    
+     
+     
+     else{	 
+   	     // print_r($qty.'dsdsd'.$isbn13);die;
+
+  	      //watchdog('Before AFTER', $qty, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL);
+
+         //Handel objectionalbe quantity values
+
+          
+
+         if(array_key_exists($qty,$objectionable_qty_words)){
+
+         
+          // echo "Handel objectionable qty".$qty;die;
+          $qty =  $objectionable_qty_words[$qty];
+        //   print_r($qty);die;
+           watchdog('&*&*&* AFTER', $qty, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL);
+        
+         }
+ 	  }
+    
+     
+       if($nid == 2562  && $qty < 30){
+      // HarperCollins
+         $qty = 0;
+      }
+  
+    if($nid == 2511  && $qty < 15){
+    // for IBD distributor
+    $qty = 0;
+    }
+
+     if(($nid == 2518 || $nid == 2538 || $nid == 2544 || $nid == 2581 
+      || $nid == 2669 || $nid == 2583 || $nid == 2541 || $nid == 2589 
+      || $nid == 2536 || $nid == 2517 ||  $nid == 2634 || $nid == 2636
+      || $nid ==2637  || $nid ==2638  ||  $nid == 2639 || $nid==2644 
+      || $nid== 2578  || $nid== 2577  || $nid== 2577 || $nid==2618 || $nid==2528) && $qty < 20){
+    //Rupa$nid==2634 || $nid==2635  || $nid==2636|| $nid==2637|| $nid==2638|| $nid==2639
+    //sage
+    // AlkaEnterprise
+    //PrakashBooks
+    //G.K. Publications
+    //Ramesh Publishing House
+    //DISHA
+    //SouthAsia-GoodTimes
+    //LovDev
+    //ABC
+    //jaico
+    //penguin
+    //pan macmillan
+    //V&S 
+    $qty = 0;
+    }
+    if(($nid == 2556 || $nid == 2596 || $nid == 2513 || $nid == 2640 
+    || $nid == 2537 || $nid == 2611 || $nid == 2641 || $nid == 2584 
+    || $nid == 2615  || $nid == 2552 || $nid==2508 || $nid==2519 || $nid==2594) && $qty < 10){
+    //Wisdom Tree
+    //Ponytale
+    //Sharda Prakashan
+    //Arihant
+    //RajkamalPrakashan(Raj,Banyan)
+    //Rajpal 
+    //ResearchPress
+    //Prabhat prakashan
+    //OM BOOKS
+    //ASTRAL
+    //Random House
+    //UNICORN
+    $qty = 0;
+    }
+   
+     if(($nid == 2522 || $nid==2624) && $qty < 25){
+    // for om books and pustak mahal
+    $qty = 0;
+    }
+    if(($nid == 2529 || $nid==2532 || $nid==2588 || $nid==2509) && $qty < 20 ){
+    // for General Press  and Westland distributor and simon/schustor,bharat books
+    $qty = 0;
+    }
+      if(($nid == 2527 || $nid==2571 ) && $qty < 15 ){
+    // for  IBH  and Mehras
+    $qty = 0;
+    }
+      
+    if(($nid == 2590 ) && $qty < 4){
+    // Star Education  
+    $qty = 0;
+    }
+      if(($nid == 2590 ) && $qty >= 4 ){
+    // Star Education  
+    $qty = 10;
+    }
+    if(($nid == 2642 || $nid==2514) && $qty < 4){
+    // DBS AND TBI
+    $qty = 0;
+    }
+    if(($nid == 2530) && $qty < 6){
+    //CambridgePress
+    $qty = 0;
+    }
+ 
+    
+   // ##############################################
+   //old conditions  =>
+    
+//		
+//    if($nid == 2514 && $qty > 1 && $qty < 10){
+//    // for TBI distributor
+//      $qty = 10;
+//    }
+
+    if($nid == 2526 && $qty > 2 && $qty < 10){
+    // for Asian delhi
+    $qty = 10;
+    
+    }
+    if($nid == 2602 && $qty < 50 && $qty >0){
+    // for Cenage
+    $qty = 10;
+    };
+    if($nid == 2602 && $qty > 50){
+    // for Cenage
+    $qty = 50;
+    }
+    if($nid == 2530 || $nid == 2539){
+    // for Cambrige & oup
+    if($qty < 25){
+    $qty = 0;
+    }
+    }   
+  //  if($nid == 2634 || $nid == 2635 || $nid == 2636 || $nid == 2637 || $nid == 2638 || $nid == 2639 || $nid == 2522){
+//    //for jaico & ombooks
+//    if($qty < 20){
+//    $qty = 0;
+//    }
+//    }
+    if($nid == 2531 && $qty < 50){
+    // for Cenage
+    $qty = 0;
+    }
+    //for DBS
+    //  if($nid == 2642){  
+    //      if($qty > 3 && $qty < 10){
+    //        $qty = 10;
+    //      //  print_r($qty);die;
+    //      }
+    //    }
+    if($nid == 2604 || $nid == 2576){
+    //pages & elbee mktng
+    if($qty > 4 && $qty < 10){
+    $qty = 10;
+    }
+    else if($qty<4)
+    {$qty=0;}
+    }
+    //for inventory
+    if($nid==2547){
+    if($qty >=1 && $qty<10){
+    $qty=10;
+    }   
+    else{
+    
+    }
+    }
+//  // For Alka Enterprise
+//  if($nid==2544){
+//    if($qty<25){
+//      $qty=0;
+//     }
+//   }
+    
+    //QUANTITY_valdation ends
+      
+    ///////////////////////////////////////////////////////////////////////////
+    //PRICE_validation starts
+    $price = $output[$row][$price_map];
+     //print_r($price);die;
+
+    $price=  str_replace('`', '', $price);
+    $price=  str_replace('/-', '', $price);
+    $temp_price=strpos($price,'Special Indian Price: Rs.');
+    $temp_price_caps=strpos($price,'Special Indian Price: RS.');
+    if( $temp_price)
+    {
+      //$var_price='SD 850 (Special Indian Price: Rs. 35,000/-)';
+      $price=strstr($price,'Rs.');
+      $price=  str_replace('/-)', '', $price);
+    }
+ 
+ if( $temp_price_caps)
+    {
+      //$var_price='SD 850 (Special Indian Price: Rs. 35,000/-)';
+      $price=strstr($price,'RS.');
+      $price=  str_replace('/-)', '', $price);
+    }
+      
+    foreach($cur as $kwy => $curr){
+      //  $pos = strrchr($price, $curr);
+      $pos = strpos($price, $curr);
+    
+       
+      if($pos === false){
+        
+      }else{
+       //echo $curr ."->".$price;
+         $currency = $curr; 
+           //watchdog('explod_Curr', $curr ."->".$price, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL);
+            
+          $temp = explode($curr,$price);
+        
+          $price = floatval($temp[1]);
+         // print_r($price);die;
+         
+        
+      }
+    } 
+   
+    
+    if(empty($price)){
+           
+    	$rejected = true;
+    	$rejected_reason .= 'PRICE is empty ||';
+    }else{
+    	$price = floatval($price);
+    }
+    
+    //print_r($price);die;
+//PRICE_validation ends
+/////////////////////////////////////////////////////////////////////////		
+//DISCOUNT_validation starts
+	if($discount_map == -1){
+		$discount = 0;
+	}else{
+		$discount = $output[$row][$discount_map];
+	}
+    // print_r($discount);die;
+     $temp_dis=strpos($discount,'.');
+     if($temp_dis){
+        //$discount =str_replace('%', '', $discount);
+       $discount =$discount*100;
+         //print_r($discount."sas");die;    
+        
+     }
+  
+//DISCOUNT_validation ends
+/////////////////////////////////////////////////////////////////////////
+//CURRENCY_validation starts
+//  print_r($currency);die;
+ 
+
+	if($rejected == true){
+	
+	}else if($currency_map == -1){
+		$currency = 1;  
+	}else if(array_search($currency,$cur)){
+		$currency = array_search($currency,$cur);
+         
+	}else{	
+		$currency = 1;
+	}
+//CURRENCY_validation ends
+//http://localhost/postpro/procured/pack
+////currency conversion
+//function get_cur_rate($currency){
+    $subquery2=db_select('field_data_field_value','fv');
+$subquery2->fields('fv',array('field_value_value'));
+$subquery2->condition('fv.entity_id',$currency,'=');
+$subquery2->range(0,1);
+$cur_rate= $subquery2->execute()->fetchField();
+ 
+//}
+ //$cur_rate=get_cur_rate($currency);
+$price=$price*$cur_rate;
+ ///currency conversion ends
+ //
+ //SAVING....			
+
+ 
+	if($rejected == false){
+
+		$listing_price = stock_price_calculator($discount,$isbn13,$qty,$nid);
+        if($listing_price != 0) {
+            $qry = db_update('catalog');
+            $qry->fields(array('listing_price' => $listing_price));
+            $qry->condition('isbn13',$isbn13);
+            $qry->execute();
+            
+        }
+   
+  
+    if( $nid == 2533 || $nid == 2534 || $nid == 2535 ){
+      $nid = 2533;
+    }
+   
+    if( $nid == 2548 || $nid == 2549 || $nid == 2550 ){
+      $nid = 2549;
+    }
+    //vaibhav books
+ // if($nid == 2631 || $nid==2646||$nid == 2628 || $nid == 2630 || $nid == 2632 || $nid == 2633){
+    
+    if($nid == 2646 || $nid==2647||$nid == 2648 || $nid == 2650 || $nid == 2663 || $nid == 2664 || $nid==2629){
+      $nid = 2629;
+    }
+    if(($nid >= 2651 && $nid <=2662) || $nid==2665 || $nid==2666){
+      $nid = 2589;
+    }
+    //bharatbooks and mep
+    if($nid==2509 || $nid==2672){
+        $nid = 2509;
+    }
+    //jaico
+     if($nid==2634 || $nid==2635  || $nid==2636|| $nid==2637|| $nid==2638|| $nid==2639){
+        $nid = 2634;
+    }
+     
+     //condition on price for ALL if listing price<=40 qty is 0 
+   // if($listing_price<40 || $price < 40 ){
+   // $qty=0;
+   // }
+  //  if($listing_price == 40  || $price == 40){
+   // $qty=0;
+  //  }
+    //print_r($qty);die;
+        $query=db_merge('stock')
+		  ->key(array('id' => $nid.'_'.$isbn13))
+		  ->fields(array(
+			'isbn13' => $isbn13,
+			'source' => $nid,
+			'qty' => $qty,
+			'price' => floatval($price),
+			'discount'=>$discount,
+			'currency' => $currency,
+			'dtime' => time(),
+      ///sla field
+		  ));
+         // dpq($query)
+    try{
+		  $res = $query->execute();
+    }catch(Exception $e){
+      
+    }
+   
+		if($res == 1){
+			$new_count++;
+		}else if($res == 2){
+			$updated_count++;
+		}
+	}else{
+
+		$query=db_insert('stockrejected')
+		  ->fields(array(
+			'isbn13' => $isbn13,
+			'source' => $nid,
+			'qty' => $qty,
+			'price' => floatval($price),
+			'discount'=>$discount,
+			'currency' => $currency,
+			'dtime' => time(),
+			'error' => $rejected_reason,
+		  ));
+        try{
+            $res = $query->execute();
+        }catch (Exception $e){   
+        }
+		$rejected_count++;
+	}
+ }
+ //SAVING DONE!
+	$xls_broken_rows = ($rejected_count == 0) ? 'No broken records found.': 'Click <a href="stock/broken/records"> Here </a> to download the: ' .$rejected_count.' broken records.';
+	drupal_set_message('Stock total records were : '. ($numrows - 1)  .'<br/>New created catalogs are : '. $new_count
+	                   .'<br/> Updated catalogs are : '. $updated_count.'
+					   <br/>');
+    drupal_set_message($xls_broken_rows,'error');
+}
+
+/**
+ * Implements ajax submit callback of read_excel_file
+ */
+function stock_excel_preview($form , &$form_state){
+    include 'simple/simplexlsx.class.php';
+    require_once 'excel_reader2.php';
+	$xls_name_temp = explode('.',$_FILES['files']['name']['stock_file']);;
+	$xls_name = $xls_name_temp[0];
+
+	 $header = array(
+    t('Request id'),
+    t('Client'),
+    t('Sku id'),
+    t('Title'),
+    t('Details'),
+    t('Category'),
+    t('Reference link'),
+    t('Image name')
+ );
+	$file = file_save_upload('stock_file', array('file_validate_extensions' => array('xls xlsx'),));
+	if ($file = file_move($file, 'public://')) {
+        $form_state['values']['file'] = $file;
+		//print_r($file);die;
+		$filepath = drupal_realpath($file->uri);
+	   ###################mapping of excel readers###################
+        $ext = pathinfo($filepath, PATHINFO_EXTENSION);
+	
+        if($ext=='xlsx'){   
+        $data = new SimpleXLSX($filepath);
+        $test =  list($numcols, $numrows) = $data->dimension();
+        $info= $data->rows();
+        for($r =1; $r < $numrows; $r++){
+           $row = $r;  
+           $row_xl = array();
+         foreach($info[$r] as $col => $cols){
+           $output[$row][$col] = $cols;
+           $row_xl[] = substr($output[$row][$col],0,50);
+         }
+           if($row < 6){
+				$rows[] = $row_xl;
+	       }
+       }
+        
+        }else if($ext=='xls') {
+        $data = new Spreadsheet_Excel_Reader($filepath);
+        $numrows = count($data->sheets[0]['cells']);
+        $numcols = $data->sheets[0]['numCols'];     
+        	$rows = array();
+		for($row = 1; $row <= $numrows; $row++) {
+			$row_xl = array();
+			for ($col = 1; $col <= $numcols; $col++) {
+				$output[$row][$col] = $data->val($row, $col, $sheet = 0);
+				$row_xl[] = substr($output[$row][$col],0,50);
+			}
+			if($row < 6){
+				$rows[] = $row_xl;
+			}
+		}
+        }
+         ###############################################################
+	
+		$row_xl = array();
+		for($col = 1; $col <= $numcols; $col++){
+			if($col == 1){
+				$val = '<form id ="stock_mapping" method="post">'.stock_get_table_dropdown_options($col);
+			}else{
+				$val =  stock_get_table_dropdown_options($col);
+			}
+			$row_xl[] = $val;
+		}
+		$rows[] = $row_xl;
+		$tabl = theme('table',array('header' => null,'rows'=>$rows)).'<input type="submit" id = "submit" name="abc" value="Submit"></form>';
+		///print $tabl;die;
+      }else {
+        form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+      }
+	  //return($tabl);
+	return '<div id="stock_excel_preview_area">'.$tabl.'</div>';
+}
+/**
+ * Calculates currency rate of a currency
+ */
+function get_cur_rate($currency){
+    $subquery2=db_select('field_data_field_value','fv');
+$subquery2->fields('fv',array('field_value_value'));
+$subquery2->condition('fv.entity_id',$currency,'=');
+$subquery2->range(0,1);
+$cur_rate_zero= $subquery2->execute()->fetchField();
+return $cur_rate_zero;
+    
+}
+ 
+/**
+ * Implements helper function for getting all the options of the mapping
+ */
+function stock_get_table_dropdown_options($col){
+	$output = '<select id ="select_'.$col.'" class="stock_mapping_select">
+    				  <option value="" selected>-Select-</option>
+    				  <option value="isbn13">ISBN13</option>
+    				  <option value="qty">Quantity</option>
+    				  <option value="price">Price</option>
+    				  <option value="currency">Currency</option>
+    				  <option value="disc">Discount</option>
+			       <select>';
+	return $output;
+}
+
+/**
+ * Implements helper function for getting all the distributors
+ */
+function stock_get_all_distributors(){
+	$query = db_select('node','n');
+	$query->join('field_data_field_distributor_name','dn','dn.entity_id = n.nid');
+	$query->condition('n.type','distributor');
+	$query->fields('n',array('nid'));
+	$query->fields('dn',array('field_distributor_name_value'));
+    $query->orderBy('field_distributor_name_value', 'ASC');
+	$res = $query->execute()->fetchAllKeyed();
+	return $res;
+}
+
+/**
+ * Implements helper function for getting distributor name by id
+ */
+function stock_get_distributor_name_by_id($id){
+	$query = db_select('node','n');
+	$query->join('field_data_field_distributor_name','dn','dn.entity_id = n.nid');
+	$query->condition('n.type','distributor');
+    $query->condition('dn.entity_id',$id);
+	$query->fields('dn',array('field_distributor_name_value'));
+	$res = $query->execute()->fetchField();
+	return $res;
+}
+
+function genchksum13($isbn) {  
+    $isbn = trim($isbn);  
+    for ($i = 0; $i <= 12; $i++) {  
+        $tc = substr($isbn, -1, 1);  
+        $isbn = substr($isbn, 0, -1);  
+        $ta = ($tc*3);  
+        $tci = substr($isbn, -1, 1);  
+        $isbn = substr($isbn, 0, -1);  
+        $tb = $tb + $ta + $tci;  
+    }  
+    $tg = ($tb / 10);  
+    $tint = intval($tg);  
+    if ($tint == $tg) { return 0; }  
+    $ts = substr($tg, -1, 1);  
+    $tsum = (10 - $ts);  
+    return $tsum;  
+}  
+
+/**
+ * Implements helper function for converting isbn to isbn13
+ */
+function isbn10_to_13($isbn) {  
+    $isbn = trim($isbn);  
+    if(strlen($isbn) == 12){ // if number is UPC just add zero  
+        $isbn13 = '0'.$isbn;}  
+    else  
+    {    
+    $isbn2 = substr("978" . trim($isbn), 0, -1);
+    $sum13 = genchksum13($isbn2);  
+      $isbn13 = "$isbn2$sum13";  
+    }  
+    return ($isbn13);  
+} 
+
+/**
+ * Implements helper function for getting all the currencies
+ */
+function stock_get_all_currencies(){
+	$v = taxonomy_vocabulary_machine_name_load('currency');
+	$output = array();
+	$terms = taxonomy_get_tree($v->vid);
+	foreach($terms as $term){
+		$output[$term->tid] = $term->name;
+	}
+     
+	return $output;
+}
+
+
+/**
+ * stock_get_all_objectionable_qty_words
+ */
+function stock_get_all_objectionable_qty_words(){
+    $v = taxonomy_vocabulary_machine_name_load('objectionable_quantity_keywords');
+    $output = array();
+    $terms = taxonomy_get_tree($v->vid);       
+    foreach($terms as $term){       
+        $term_info  = taxonomy_term_load($term->tid);        
+          
+        $field_quantity_value = $term_info->field_quantity_value['und'][0]['value'];
+        
+        $output[$term->name] = $field_quantity_value;
+    }   
+   
+    return $output;
+}
+
+/**
+ * Generate Unix time stamp for Stock filter dates.
+ */
+function stock_generate_uinx_time_stamp($date_tm){
+  $year = $hour = $month = $min = $day = $unxtime = 0;
+  $date_xpo = $date_xpo_split_date =array();
+  $date_xpo = explode(" ",$date_tm);
+  
+  $date_xpo_split_date = explode("-", $date_xpo[0]); //Date values
+  
+  //print_r($date_xpo_split_date); die;
+  //here [ 0=> year, 1=> Month, 2=> Day ]   
+  $year = $date_xpo_split_date[2];  
+  $month = $date_xpo_split_date[0];  
+  $day = $date_xpo_split_date[1];     
+  
+  if(!empty($date_xpo[1])){
+    $date_xpo_split_time = explode(":", $date_xpo[1]); // Time Values  
+   //  print_r($date_xpo_split_time); die;
+    $hour = $date_xpo_split_time[0];
+    $min = $date_xpo_split_time[1];
+  }  
+  
+  $unxtime = mktime($hour,$min,0,$month,$day,$year);  
+  return $unxtime;
+}
+
+/**
+ * Implements helper function that gives total quantity of a isbn
+ */
+function stock_get_total_available_qty($isbn){
+  $query = db_select('stock','s');
+  $query->addExpression('SUM(qty)', 'avail_qty');
+  $query->condition('s.isbn13',$isbn);
+  $res = $query->execute()->fetchField();
+  return $res;
+}
+
+/**
+ * Implements helper function distinct publishers per distributor
+ */
+function stock_get_distinct_publishers($distributor_id){
+  $query=db_select('stock','s');
+  $query->join('catalog','c','c.isbn13=s.isbn13');
+  $query->condition('source',$distributor_id);
+  $query->fields('c',array('publisher'));
+  $query->distinct();
+  $res = $query->execute()->fetchCol();
+  return $res;
+}
+
+/**
+ * Implements function to check whether distributor-publisher-category mapping exist
+ */
+function stock_check_distributor_publisher_categories($distributor_id, $publisher, $category){
+  $query = db_select('stock','s');
+  $query->join('catalog','c','c.isbn13=s.isbn13');
+  $query->condition('s.source',$distributor_id);
+  $query->condition('c.publisher',$publisher);
+  $query->condition('c.ebay_category_id_1',$category);  
+  $query->fields('c',array('isbn13'));
+  $query->distinct();
+  $res = $query->execute()->fetchField();
+  return $res;
+}
+
+/**
+ * Get distinct categories publishers per distributor
+ */
+function stock_get_distinct_publishers_categories($distributor_id){
+  $query=db_select('stock','s');
+  $query->join('catalog','c','c.isbn13=s.isbn13');
+  $query->condition('source',$distributor_id);
+  $query->fields('c',array('publisher','ebay_category_id_1'));
+  $query->distinct();
+  $res = $query->execute()->fetchAll();
+  return $res;
+}
+
+/**
+ * Implements helper function to give term id from distributor name
+ */
+function stock_get_term_id_by_distributor($distributor){
+  $query = db_select("field_data_field_distributor_id",'d');
+  $query->join('taxonomy_term_data','t','t.tid=d.entity_id');
+  $query->condition('field_distributor_id_value ',$distributor);
+  $query->fields('t',array('tid'));
+  $res = $query->execute()->fetchField();
+  return $res[0];
+}
+
+/**
+ * Implements helper function to calculate the price
+ */
+function stock_price_calculator($discount,$isbn,$qty,$nid,$mrp_inr = NULL ,$pub = NULL){
+   $nid=$nid;
+  if(!$mrp_inr){
+    
+ // echo $isbn.'isbn';
+   // $isbn='9780007415496    ';
+    //echo $isbn.'isbn         ';
+    $p=$result[0]->publisher;
+    $m=$result[0]->mrp_inr;
+    $query = db_select("catalog","c");
+    $query->fields('c',array('mrp_inr','publisher'));
+    $query->condition('c.isbn13',$isbn);
+    $result = $query->execute()->fetchAll(); 
+    $mrp_inr = $m;
+    $pub = $p;
+  }
+  //SouthAsia-BibliophileSouthAsia45%
+ 
+
+  if($nid==2651){
+        $coded_discount=30;
+    }
+ //SouthAsia-Book1BiharSchoolOfYoga20%
+   else if($nid==2652){
+        $coded_discount=5;
+    }
+    //SouthAsia-Book6GlobusPress40%
+     else if($nid==2653){
+       $coded_discount=25; 
+    }
+    //SouthAsia-Conceptpublishing40%
+     else if($nid==2654){
+        $coded_discount=25;
+    }
+    //SouthAsia-distributed35%
+     else if($nid==2655){
+        $coded_discount=20;
+    }
+    //SouthAsia-distributed40%
+     else if($nid==2656){
+        $coded_discount=25;
+    }
+    //SouthAsia-DKPrintworld35%
+     else if($nid==2657){
+        $coded_discount=20;
+    }
+    //SouthAsia-logospress40%
+     else if($nid==2658){
+        $coded_discount=25;
+        
+    }
+   // SouthAsia-OrientBlackswanPvt.ltd.25%
+     else if($nid==2659){
+        $coded_discount=10;
+        
+    }
+    //SoutAsia-sageindia35%
+     else if($nid==2660){
+        $coded_discount=20;
+        
+    }
+    //SouthAsia-ShardaPublishingHouse40%
+     else if($nid==2661){
+        $coded_discount=25;
+    }
+    //SouthAsia-ZubaanBooks30%
+     else if($nid==2662){
+        $coded_discount=15;
+        
+    }
+    //SouthAsiaLotus Press 30%
+     else if($nid==2665){
+        $coded_discount=15;
+    }
+    //South Asia - Vitasta Publishing 40%
+     else if($nid==2666){
+        $coded_discount=25;
+    }
+   // SouthAsia-GoodTimes
+     else if($nid==2589){
+        $coded_discount=0;
+    }
+    else{
+        $coded_discount=0;
+    }
+    $passon_discount = search_discount($isbn,$qty); 
+   if($passon_discount<0 || $passon_discount=='' || empty($passon_discount) || $passon_discount==NULL){
+    $passon_discount=0;
+      }
+ 
+   $evaluated_discount=max($passon_discount,$coded_discount);
+   
+   
+    //Inventory,IBH,Arihant ,Vaibhav discount As Per Sheet
+    if($nid==2547 || $nid==2527 || $nid==2537 || $nid==2629){
+        $evaluated_discount=$discount;
+    }
+    //MITTAL BOOKS
+    if($nid==2572){
+        $evaluated_discount=$discount-7;
+        
+    }
+     //DISHA
+    if($nid==2541){
+        $evaluated_discount=$discount-10;
+        
+    }
+   // print_r($evaluated_discount);die;
+    if($evaluated_discount==0){
+        $evaluated_discount=11;
+    }
+    
+ // echo $passon_discount.'   passondiscount       ';
+  $discount_amount = ($mrp_inr *$evaluated_discount)/100;
+// echo $discount_amount.'     discountamount       ';
+if($discount_amount<$mrp_inr){$listing_price = $mrp_inr - $discount_amount;}
+else{$listing_price=0; }
+  
+  // print_r($listing_price.'        listing        ');die;
+  return $listing_price;
+}
+
+/**
+ * Implements helper function to calculate the discount of isbn
+ */
+function stock_get_passon_discount($isbn,$publisher){
+    $query = db_select("ebay_books_discount","d");
+    $query->fields('d',array('discount'));
+    $query->condition('d.publisher_name',$publisher);
+    $query->condition('d.distributor_id',0);
+    $discount = $query->execute()->fetchField(); 
+    //print_r($discount);die;
+    //urgent condition applied on discount
+    if(!$discount){
+    $discount = 20;
+    }
+    else if($discount>=35){
+    $discount=$discount-15;
+    }
+    else if($discount>=20 && $discount<35){
+    $discount=$discount-10;
+    }
+    else if($discount>9 && $discount<20){
+    $discount=$discount-5;
+    }
+    else{
+    $discount=20;
+    }
+    if($discount < 0){
+    $discount=20;
+    }
+    // print_r($discount);die;
+    return $discount;
+  }
+  
+   /**
+    * Implements new discount structure calculates discount based on quantity
+    */
+    function search_discount($isbn,$qty,$discount=NULL){
+       
+    $sources=get_all_sources($isbn);//calling get sources function
+      foreach($sources as $sourc){
+        $source = $sourc->source; 
+        $discount .= get_discount($source,$qty)."|";//calling get discount function
+         }
+    $all_discount=explode("|",$discount);
+    $passon_discount=max($all_discount);
+    //print_r($passon_discount);die;
+    return $passon_discount;
+    }
+    //gets all sources of a particular isbn
+    function get_all_sources($isbn){
+    $gt_source=db_select('stock','s');
+    $gt_source->fields('s',array('source'));
+    $gt_source->condition('isbn13',$isbn);
+    $gt_source->condition('s.qty',10,'>=');
+    $sources=$gt_source->execute()->fetchAll();
+    return $sources;
+    }
+    //gets discount from discount_table
+    function get_discount($sourc,$qty){
+    $disc=db_select('discount_table','dis');
+    $disc->fields('dis',array('discount','lower_limit','upper_limit'));
+    $disc->condition('dis.source',$sourc);
+    $discount_res=$disc->execute()->fetchAll();
+    foreach($discount_res as $res){
+        $low=$res->lower_limit;
+        $up=$res->upper_limit;
+        if($qty>=$low && $qty<=$up){
+           return $res->discount;
+        }
+       }
+    }
+        //gets sla from discount_table
+    function get_sla_from_discount_table($sourc,$qty){
+    $disc=db_select('discount_table','dis');
+    $disc->fields('dis',array('sla','lower_limit','upper_limit'));
+    $disc->condition('dis.source',$sourc);
+    $disc->condition('dis.sla','0','>');
+    $discount_res=$disc->execute()->fetchAll();
+    //print_r($discount_res);die;
+    foreach($discount_res as $res){
+        $low=$res->lower_limit;
+        $up=$res->upper_limit;
+        if($qty>=$low && $qty<=$up ){
+          //print_r($res->sla);die; 
+           return $res->sla; 
+           
+        }
+       }
+    }
+
+/**
+ * Implements helper function to check if the book is in promo
+ */
+function stock_check_promo_book($isbn){
+  $query = db_select("ebay_books_promotions","p");
+  $query->fields('p',array('promo_id'));
+  $query->condition('p.promo_isbn',$isbn);
+  $query->condition('p.status','ACTIVE');
+  $result = $query->execute()->fetchField();
+  if($result){
+    return true;
+  }else{
+    return false;
+  }
+}
+
+/**
+ * Implements helper fucntion that checks whether catalog has the isbn
+ */
+function catalog_has_this_isbn($isbn){
+  $query = db_select("catalog","c");
+  $query->fields("c");
+  $query->condition("c.isbn13",$isbn);
+  $res = $query->countQuery()->execute()->fetchField();
+  return $res;
+}
+ 
+/**
+ * Implements helper function that clears the stock of a distributor
+ */
+function stock_clear_all_stock_of_distributor($nid){
+        //dkpd
+    if( $nid == 2533 || $nid == 2534 || $nid == 2535 ){
+    $nid = 2533;
+    }
+    
+    if( $nid == 2548 || $nid == 2549 || $nid == 2550 ){
+    $nid = 2549;
+    }
+    //vaibhav books
+    if($nid == 2646 || $nid==2647||$nid == 2648 || $nid == 2650 || $nid == 2663 || $nid == 2664 || $nid==2629){
+    $nid = 2629;
+    }
+    if(($nid >= 2651 && $nid <=2662) || $nid==2665 || $nid==2666){
+    $nid = 2589;
+    }
+    //bharatbooks and mep
+    if($nid==2509 || $nid==2672){
+    $nid = 2509;
+    }
+    //jaico
+    if($nid==2634 || $nid==2635  || $nid==2636|| $nid==2637|| $nid==2638|| $nid==2639){
+    $nid = 2634;
+    }
+    //print_r($distributor_id);die;
+  $query = db_update("stock");
+  $query->fields(array("qty"=> 0,'dtime' => time()));
+  $query->condition("source",$distributor_id);
+  $query->execute();
+   }
+
+
+/**
+ * Implements helper function to be run on the cron to recalculate prices
+ */
+function stock_calculate_price(){
+  $query = db_select("catalog","c");
+  $query->fields('c',array('isbn13','mrp_inr','publisher'));
+  $results = $query->execute()->fetchAll(); 
+  
+  foreach($results as $result){
+    $isbn13 = $result->isbn13;
+    $mrp_inr = $result->mrp_inr;
+    $pub = $result->publisher;
+    
+      $passon_discount = search_discount($isbn,$qty); 
+  
+   if($passon_discount<0 || $passon_discount=='' || empty($passon_discount) || $passon_discount==NULL){
+    $passon_discount = stock_get_passon_discount($isbn,$pub);
+     if($passon_discount<0 || $passon_discount=='' || empty($passon_discount) || $passon_discount==NULL){
+    $passon_discount=0;
+    }
+   }
+    $discount_amount = ($mrp_inr *$passon_discount)/100;
+    $listing_price = ceil($mrp_inr - $discount_amount);
+    $qry = db_update('catalog');
+    $qry->fields(array('listing_price' => $listing_price));
+    $qry->condition('isbn13',$isbn13);
+    $qry->execute();
+  }
+}
+
+/**
+ * Implements helper function to update listing_price in catalog
+ */
+//function stock_listing_price_update_in_catalog($isbn13,$listing_price){
+//  $listing_price = stock_price_calculator($isbn13);
+//  if($listing_price!=0){
+//    $qry = db_update('catalog');
+//    $qry->fields(array('listing_price' => $listing_price));
+//    $qry->condition('isbn13',$isbn13);
+//    $qry->execute();
+//  }
+// 
+//}
+//
+function stock_get_qty_of_isbn($isbn13){
+  $query=db_select('stock','s');
+  $query->condition('isbn13',$isbn13);
+  $query->addExpression('SUM(qty)', 'avail_qty');
+  $results = $query->execute()->fetchField();
+  return $results;
+}
+
+/**
+ * Implements callback of ajax submit
+ */
+function stock_generate_mapping($from,&$form_state){
+  $output = stock_get_mapping_table($form_state['values']['template_name']);
+  return $output;
+}
+
+/**
+ * Implements helper function to get mapping table
+ */
+function stock_get_mapping_table($template){
+  $node = node_load($template);
+  $isbn = $node->field_isbn13_map['und'][0]['value'];
+  $qty  = $node->field_qty_map['und'][0]['value'];
+  $price = $node->field_price_map['und'][0]['value'];
+  $currency=$node->field_currency_map['und'][0]['value'];
+  $discountm = $node->field_discount_map['und'][0]['value'];
+  $output = 'ISBN  -> '.$isbn.'<br/>';
+  $output .= 'Quantity  -> '.$qty.'<br/>';
+  $output .= 'Price  -> '.$price.'<br/>';
+  $output .= 'Currency ->'.$currency.'<br/>';
+  $output .= 'Discount ->'.$discountm.'<br/>';
+  return '<div id="mapping-table">'.$output.'</div>';
+}
+    function arrayUniqueVersion2($array) {
+     
+    $input = array_map("unserialize", array_unique(array_map("serialize", $array)));
+    foreach ( $input as $key => $value ) {
+    is_array($value) and $input[$key] = arrayUnique($value);
+     }
+    return $input;
+     }
+ 

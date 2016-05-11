@@ -1,0 +1,374 @@
+<?php
+ 
+/**
+ * Implements hook_menu().
+ */
+function post_procure_menu() {
+	$items['procured/pack'] = array(
+		'title' => 'See isbn details and print it',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('post_procure_show_details'),
+		'access arguments' => array('access content'),
+		'type' => MENU_CALLBACK,
+	);
+	$items['procured/pack/%'] = array(
+		'page callback' => 'post_procure_show_details_byisbn',
+		'page arguments' => array(2),
+		'access arguments' => array('access content'),
+		'type' => MENU_CALLBACK,
+	);	
+	return $items;
+}
+
+/**
+ * Implements prost procure printing details.
+ */
+function post_procure_show_details(){
+	global $base_path;
+	drupal_add_js(drupal_get_path('module','post_procure').'/post_procure.js');
+	drupal_add_css(drupal_get_path('module','post_procure').'/post_procure.css');
+	$form['fset'] = array(
+		'#type' =>'fieldset',
+		'#title' => t('Post procure see ISBN details'),	
+	);
+	$form['fset']['isbn'] = array(
+		'#type' => 'textfield', 
+		'#title' => 'Enter ISBN to Check',
+		'#description' => t('Please click out to proceed'),
+		'#attributes' => array('class' => array('procure_print_val')),
+		'#required'=> TRUE,
+	);
+	/*$form['fset']['isbn_submit'] = array(
+		'#type' => 'submit', 
+		'#value' => t('Show details'),
+		'#attributes' => array('class' => array('procure_print')),
+	);*/
+	$form['wrapper'] = array(
+		'#prefix'  => '<div id="procure_invoice_print_details">',
+		'#suffix'  => '</div>',
+	);
+	$form['load'] = array(
+		'#markup' => '<img style="display:none;" alt="loading please wait...." src="'.$base_path.drupal_get_path('module','post_procure').'/loading_icon.gif">',		
+		'#prefix'  => '<div id="procure_invoice_load">',
+		'#suffix'  => '</div>',
+	); 	
+	return $form;
+}
+
+/**
+	* Implements procure priting details ajax call
+	*/
+function post_procure_show_details_byisbn($isbn) {
+$invoice = '<style>
+.ship-address-wrap {
+	height: auto; overflow: hidden; margin-top: 35px;
+}
+.ship-address-left {
+	width:50%;float:left;
+}
+.ship-address-right {
+	float:right;
+}
+.tbl-below table tr {
+	background:none;
+}
+.tbl-below table td {
+	text-align:right;
+}
+table.invoice {
+	border-collapse: collapse;
+	width:100%;
+}
+table.invoice tr td, table.invoice tr th {
+	padding: 4px 9px;	text-align: left;
+}
+table.invoice  td{
+	border:1px solid #000;background: none repeat scroll 0 0 #FFFFFF;
+}
+.ship-address-wrap p.title {
+	clear: both;font-weight: bold;margin-right: 15px;text-align: right;
+}
+.flL {
+	float:left;
+}
+.flR {
+	float:right;
+}
+.invoice_wrap {
+	border-bottom: 1px solid #CCCCCC;margin-bottom: 35px;overflow: hidden;width: 100%;
+}
+.bar_top {
+	border: 1px dotted #CCCCCC;height: 85px;width: 200px;clear:both;
+}
+.dis_add {
+	border: 1px dotted #CCCCCC;clear: right;height: 75px;margin-top: 15px;width: 250px;
+}
+.inv_add {
+	border: 1px dotted #000000;width: 350px;padding:10px;
+}
+.bar_bot {
+	border: 1px dotted #CCCCCC;height: 55px;width: 180px;
+}
+</style>';
+	$qry = db_select('sells_records_items','i');
+	$qry->join('sales_records','s','s.sales_record_no = i.sales_record_number');
+	$qry->fields('i',array('sales_record_number','item_number','item_title','custom_label','quantity','courrier_name','awb_no','sale_price','assignedto'));
+	$qry->fields('s',array('sales_record_no','user_id','buyer_full_name','buyer_phone','buyer_email','buyer_address_1','buyer_address_2','buyer_city','buyer_pincode','buyer_country','total_price','transaction_id','record_uploaded_date','check_out_date','shipping_service','order_id','courier_name'));
+	$qry->orderBy('s.record_uploaded_date','DESC');
+	$qry->condition('i.custom_label',trim($isbn));
+	$qry->condition('i.printed',0);
+	$qry->range(0,1);
+	$result = $qry->execute()->fetchAll();
+	$add = $date = $below_tbl = $tbl_val = $pin_error_msg = $src_name = '';
+	$pin_error = $awb = 0;
+	$updat = 1;
+	foreach($result as $k=>$v) {
+	   $custom_label=$v->custom_label;
+		$sales_record_no = $v->sales_record_no;
+		$item_hd = $v->item_title.' &nbsp;&nbsp; <strong> ISBN : '.$v->custom_label.' </strong>';
+		$tbl_val = '<td>'.$v->quantity.'</td>';
+		$tbl_val .= '<td>'.$v->item_number.'</td>';
+		$tbl_val .= '<td>'.$v->item_title.' <br/><strong> ISBN : '.$v->custom_label.' </strong>'.'</td>';
+		$tbl_val .= '<td>'.'Rs . '.$v->sale_price.' </strong>'.'</td>';
+		$tbl_val .= '<td>'.'Rs . '.$v->total_price.' </strong>'.'</td>';
+		$add = $v->buyer_full_name.'<br/>'.$v->buyer_address_1.'<br/>'.$v->buyer_address_2.'<br/>'.$v->buyer_city.'<br/> PIN : '.$v->buyer_pincode.'<br/>'.'Phone no : '.$v->buyer_phone;
+		$below_tbl = '<table>
+			<tr>
+				<td>Subtotal :</td>
+				<td>Rs. '.$v->total_price.'</td>
+			</tr>
+			<tr>
+				<td>Shipping & Handling('.$v->shipping_service.') :</td>
+				<td>Rs. 0.00</td>
+			</tr>
+			<tr>
+				<td>Seller discounts(-) or charges(+) : </td>
+				<td>Rs. 0.00</td>
+			</tr>
+			<tr>
+				<td><strong>Total : </strong></td>
+				<td><strong>Rs . '.$v->total_price.'</strong></td>
+			</tr>
+		</table>';
+		$fed = sales_chk_pin_availablity(trim($v->buyer_pincode),'fed'); 
+		if($fed) {
+			$awb = sales_get_awb_number('Fedex');
+			$src_name = 'Fedex';
+			if(!$awb) {
+				$pin_error = 1;
+				$pin_error_msg = 'AWB not available for Fedex';
+			}
+		}else {
+			$dtdc = sales_chk_pin_availablity(trim($v->buyer_pincode),'dtdc');
+			if($dtdc) {
+				$awb = sales_get_awb_number('DTDC');
+				$src_name = 'DTDC';
+				if(!$awb) {
+					$pin_error = 1;
+					$pin_error_msg = 'AWB not available for DTDC';
+				}
+			}else {
+				$ara = sales_chk_pin_availablity(trim($v->buyer_pincode),'ara');
+				if($ara) {
+					$awb = sales_get_awb_number('Aramex');
+					$src_name = 'Aramex';
+					if(!$awb) {
+						$pin_error = 1;
+						$pin_error_msg = 'AWB not available for Aramex';
+					}				
+				}else {
+					$pin_error = 1;
+					$pin_error_msg = 'AWB not available for Aramex / DTDC / Fedex';				
+				}
+			}
+		}
+	}
+	
+	/*$invoice .= '<div class="invoice_wrap">';
+	$invoice .= '<div class="bar_top_wrap">';
+	$invoice .= '<span class="cor flL"> DTDC : 1234654878 </span>';
+	$invoice .= '<div class="bar_top">';
+	$invoice .= '<img alt="testing" src="'.base_path().drupal_get_path('module','post_procure').'/barcode.php?text=testing&size=40" />';
+	$invoice .= '</div>';
+	$invoice .= '</div>';
+	$invoice .= '<div class="inv_add">';
+	$invoice .= 'SHIP TO : <br/>'.$add;
+	$invoice .= '</div>';
+	$invoice .= '<div class="dis_add flL">';
+	$invoice .= '</div>';
+	$invoice .= '<div class="bar_bot_wrap flL">';
+	$invoice .= '<span class="on"> ORDER NUMBER </span>';
+	$invoice .= '<div class="bar_bot flL">';
+	$invoice .= '</div>';
+	$invoice .= '</div>';
+	$invoice .= '</div>';*/
+	
+	//echo $add; exit;
+	if($pin_error == 0) {
+		$invoice .= '<div id="macro">';
+		$invoice .= '<img alt="loading barcode please wait...." src="'.base_path().drupal_get_path('module','post_procure').'/barcode-loading.gif">';
+		$invoice .= '</div>';
+		
+		$invoice .= '<div class="invoice_wrap">';
+		$invoice .= $item_hd;
+		$invoice .= '<iframe width="500" height="500" src="https://mobileorders.ebay.in/Gen2.php?couriername='.$src_name.'&awb='.$awb.'&to='.$add.'&from=ORBYMART MARKETING PVT LTD<br/>21/A-4697/3,<br/>FIRST FLOOR NEPAL CAREER BUILDING,<br/>ANSARI ROAD DARYA GANJ,<br/>NEW DELHI -110002.&oid='.$sales_record_no.'&courier='.$src_name.'" frameborder="0" onload="document.getElementById(\'macro\').style.display=\'none\';"></iframe>';
+		$invoice .= '</div>';
+		if($updat == 1) {
+		  //check whether an order is single order or multiple order
+          
+    $check_mult=db_select('sells_records_items','sl');
+    $check_mult->fields('sl',array('sales_record_number'));
+    $check_mult->condition('custom_label',$custom_label);
+    $check_mult_res=$check_mult->execute()->fetchAll();
+    foreach($check_mult_res as $chk){
+    $select_orderid=db_select('sells_records_items','sl');
+    $select_orderid->fields('sl',array('sales_record_number'));
+    $select_orderid->condition('sales_record_number',$chk);
+    $select_orderid_res= $select_orderid->execute()->fetchAll();
+    $count_order=count($select_orderid_res);
+    if($count_order>1){
+    $single_order=0;
+    }
+    else{
+    $single_order=1;
+    }
+    }
+          // set awb status
+        $update_awb_status = db_update('sales_awb_details')
+        ->fields(array(
+        'used' => 1,
+        'sales_record_no' => $sales_record_no,
+        ))
+        ->condition('name','%'.$src_name.'%','LIKE')
+        ->condition('awb',$awb)
+        ->execute();
+        if($single_order==0){ //multiple order isbn logic
+        // update sells_records_items to set this isbn is printed
+        $check_status_scanned=db_select('sells_records_items','sl');
+        $check_status_scanned->fields('sl',array('status_scanned','quantity'));
+        $check_status_scanned->condition('sales_record_number',$sales_record_no);
+        $result=$check_status_scanned->execute->fetchAll();
+        foreach($result as $res){
+        $counter_ex=explode('-',$res->status_scanned);
+        $counter=$counter_ex[1];
+        if($counter==$res->quantity){
+        $update_printed_status = db_update('sells_records_items')
+        ->fields(array(
+        'printed' => 1,
+        ))
+        ->condition('sales_record_number',$sales_record_no)
+        ->execute();
+        $updat++;
+        }
+        else{
+        $new_status='procured_'.$counter+1;
+        $update_new_status = db_update('sells_records_items')
+        ->fields(array(
+        'status_scanned' => $new_status,
+        ))
+        ->condition('sales_record_number',$sales_record_no)
+        ->execute();
+        
+        }
+        }
+        
+        }
+          else{//singles order isbn logic
+       // update sells_records_items to set this isbn is printed
+       $update_printed_status = db_update('sells_records_items')
+        ->fields(array(
+        'printed' => 1,
+        ))
+        ->condition('sales_record_number',$sales_record_no)
+        ->execute();
+        $updat++;
+      
+       }
+	}else if($pin_error == 1){
+		$invoice .= '<div class="invoice_wrap">';
+		$invoice .= '<p style="color:red;"><strong>'.$pin_error_msg.'</strong></p>';
+		$invoice .= '</div>';
+	}
+	
+	$k = '<table class="invoice" border="1">
+	<tr>
+		<td colspan="3" style="border-bottom:0px;"></td>
+		<td>Date</td>
+		<td>Record #</td>
+	</tr>
+	<tr>
+		<td colspan="3" style="border-top:0px;"></td>
+		<td>15 April 2013</td>
+		<td>'.$sales_record_no.'</td>
+	</tr>
+	<tr>
+		<td>Quantity</td>
+		<td>Item #</td>
+		<td>Item Name</td>
+		<td>Price</td>
+		<td>Sub Total</td>
+	</tr>
+	<tr>'.$tbl_val.'</tr>
+	</table>';
+	
+	$below_tbl_val = '<div style="text-align:right;" class="ship-address-right tbl-below">';
+	$below_tbl_val .= $below_tbl;
+	$below_tbl_val .= '</div>';
+	
+	$tbl = $invoice.'<div class="ship-address-wrap">';
+		$tbl .= '<div class="ship-address-left">';
+		$tbl .= $add;
+		$tbl .= '</div>';
+		$tbl .= '<p class="title">Invoice / Packing Slip</p>';
+		$tbl .= $k.$below_tbl_val;
+	$tbl .= '</div>';
+	
+	if(count($result)>0) {
+		$out = $tbl;
+	}else {
+		$out = 'iksula';
+	}
+	echo $out;
+}
+
+/**
+	* Check pincode availablity
+	*/
+function sales_chk_pin_availablity($pincode,$case) {
+	switch($case) {
+		case 'fed':	
+			$fed_qry = db_select('sales_fedex_pincode_list','f')
+				->fields('f',array('pincode'))
+				->condition('pincode',$pincode);
+			$fed_result = $fed_qry->execute()->fetchField();
+			break;
+		case 'dtdc':	
+			$dtdc_qry = db_select('sales_dtdc_pincode_list','d')
+				->fields('d',array('pincode'))
+				->condition('pincode',$pincode);
+			$fed_result = $dtdc_qry->execute()->fetchField();
+		break;
+		case 'ara':	
+			$ara_qry = db_select('sales_aramex_pincode_list','a')
+				->fields('a',array('pincode'))
+				->condition('pincode',$pincode);
+			$fed_result = $ara_qry->execute()->fetchField();
+		break;
+	}
+	return $fed_result;					
+}
+
+/**
+	* Get AWB number 
+	*/
+function sales_get_awb_number($src_name) {
+	$fed_qry = db_select('sales_awb_details','a')
+		->fields('a',array('awb'))
+		->condition('name','%'.$src_name.'%','LIKE')
+		->condition('used',0)
+		->range(0,1);
+	$awb = $fed_qry->execute()->fetchField();
+	return $awb;					
+}
+	
+?>

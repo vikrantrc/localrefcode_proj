@@ -1,0 +1,37 @@
+fieldset.filter-options-fieldset{
+  border: 0;
+  
+}
+
+.select-filter-options{
+ float:left;
+ width:235px;
+}
+
+.filter-options-fieldset{
+   border: 1px soild red;
+}
+
+.filter-from-date{
+     float:left;
+     width:40%;
+}
+
+.filter-to-date{   
+    float: left; 
+    margin-bottom: 10px;
+}
+
+.isbn-filter-option{
+    width: 418px;
+}
+    
+.resizable-textarea .grippie {
+ display: none;    
+}
+#date-event-fieldset-wrapper{
+    float:left;
+    width:15%;
+}
+
+br {mso-data-placement:same-cell;}

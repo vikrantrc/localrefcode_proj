@@ -1,0 +1,140 @@
+.quicktabs_main.quicktabs-style-navlist {
+    background: none repeat scroll 0 0 #F0F8FC;
+    border: 1px solid #BFD0FF;
+    float: left;
+    min-height: 100px;
+    padding: 10px;
+    position: relative;
+    width: 70%;
+    z-index: 1;
+}
+
+form div.flR {
+	float:right;
+}
+.sales_search_input_wrap{
+  margin-left: 4px;
+}
+#progress-c-wrapper {
+  border: 1px solid #e4e4e4;
+  background-color: transparent;
+  width: 100px;
+  height: 16px;
+  border: 2px;
+  border-color: red;
+    background: #ebebeb url(prog.gif) repeat-x
+}
+#progress-c-value {
+  background: #ebebeb url(prog.gif) repeat-x;
+  height: 16px;
+}
+
+.next-popup-wrap {
+   background-color: #EEEEEE;
+    border: 3px solid #0071B3;
+    border-radius: 10px 10px 10px 10px;
+    box-shadow: 1px 0 17px #CCCCCC;
+    height: auto;
+    left: 300px;
+    padding: 15px 30px;
+    position: absolute;
+    top: 700px;
+    width: 400px;
+    display:none;
+    z-index:1000;
+}
+
+.next-popup-wrap p {
+  font-size:15px;
+}
+
+.next-popup-wrap p.action span.flL a{
+  color:red;
+}
+
+.next-popup-wrap p.action span.flR a{
+  color:green;
+}
+
+.flLa{
+  float:left;
+}
+
+.flR {
+  float:right;
+}
+.down_cur{
+   float:left;
+}
+/*discount css */
+.stock-filter-from-date, .stock-filter-to-date{
+	float:left;
+}
+.form-item-template-name label{
+	float :left;
+	
+}
+.form-item-template-name{
+	padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 32px;
+}
+.page-stock-search .fieldset-wrapper{
+	padding:0px!important;
+}
+.page-stock-search  fieldset{
+	min-height:125px;
+}
+#edit-stock-search-submit{
+	float:right;
+}
+#stock_search_preview_area{
+	float:left;
+	clear:both;
+	width:100%;
+}
+#edit-create-distributor label{
+  float:left;
+  min-width: 253px;
+}
+
+.stock_search_submit{
+    float:left;   
+}
+.stock_search_downlaod_file{
+    float:left;   
+}
+#fieldset_body{
+    margin-top: 10px;
+    float:left;
+    width:100%;
+    padding:10px;
+}
+
+#block-discount-discount-shortcut-icon-block{
+    color: #B40404;
+    float: right;
+    margin-left: 37px;
+    font-weight: bold;
+}
+
+#block-discount-discount-shortcut-icon-block #stock_list_update_count,#timer_expire{
+    background: url("images/clsk.png") no-repeat scroll 0 0 transparent;
+    display: block;
+    font-size: 24px;
+    height: 32px;
+    padding-top: 25px;
+    text-align: center;
+    text-indent: 30px;
+    width: 60px;
+    text-decoration: none;
+    float:left;
+}
+
+#block-discount-discount-shortcut-icon-block #stock_list_update_count{
+    background: url("images/stockdwn.png") no-repeat scroll 0 0 transparent;
+}
+ul.nice-menu a {
+    color: #FFFEFF !important;
+    display: block;
+}

@@ -1,0 +1,100 @@
+#procure_invoice_print_details {
+	width:800px;
+	overflow:hidden;
+	display:block
+}
+.ship-address-wrap {
+	height: auto;
+  overflow: hidden; 
+	margin-top: 35px;
+}
+
+.ship-address-left {
+	width:50%;
+	float:left;
+}
+.ship-address-right {
+	float:right;
+}
+
+.tbl-below table tr {
+	background:none;
+}
+.tbl-below table td {
+	text-align:right;
+}
+table.invoice {
+	border-collapse: collapse;
+}
+table.invoice  td{
+	border:1px solid #000;
+	background: none repeat scroll 0 0 #FFFFFF;
+}
+.ship-address-wrap p.title {
+	clear: both;
+	font-weight: bold;
+	margin-right: 15px;
+	text-align: right;
+}
+.flL {
+	float:left;
+}
+.flR {
+	float:right;
+}
+.invoice_wrap {
+	border-bottom: 1px solid #CCCCCC;
+	margin-bottom: 35px;
+	overflow: hidden;
+	width:900px;
+}
+
+.invoice_wrap iframe {
+	float:left;
+}
+.invoice_wrap .inv_label {
+	width:350px;
+    
+}
+
+#macro {
+    margin-top: 150px;
+    text-align: center;
+}
+ #popup_order_old{
+    width:800px;
+	overflow:hidden;
+	display:block
+    
+ }
+    .popup_order {
+    background-color: #EEEEEE;
+    border: 3px solid #0071B3;
+    /*border-radius: 10px 10px 10px 10px;
+    box-shadow: 1px 0 50px rgb(6, 7, 7);*/
+    border-radius: 10px 10px 10px 10px;
+    box-shadow: -5px 0 43px #48a9e4;
+    height: 10px;
+    left:  397px;
+    padding: 15px 30px;
+     position: absolute;
+    top: 400px;
+    width: 10px;
+    display:none;
+    z-index:1000;
+    font-family: lucida console;
+    color:  rgb(0, 0, 0);
+    overflow:scroll;
+    padding-top: 44px;
+    padding-bottom: 1px;
+    padding-left: 51px;
+    
+}
+#ok {
+margin-top: -13px;
+position: absolute;
+left: 610px;
+font-size:33px;
+}
+
+ 

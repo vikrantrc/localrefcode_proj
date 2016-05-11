@@ -1,0 +1,11 @@
+name = Ebay Books Administration
+description = It mainly proccess the books catalog,stocks and it's sell.
+package = Book Console
+core = 7.x
+
+; Information added by ebay
+version = "7.x-3.0-rc3"
+core = "7.x"
+project = "ebay_books_admin"
+datestamp = "1337292349"
+

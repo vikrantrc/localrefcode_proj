@@ -1,0 +1,719 @@
+<?php
+
+
+// Load node.admin.inc from the node module.
+module_load_include('inc', 'catalog', 'catalog.db');
+
+/**
+ * Implements hook_permissions().
+ */
+function catalog_permission() {
+  return array(
+    'catalog managament' => array(
+      'title' => t('Catalog Managament option'),     
+    ),
+  );
+}
+
+
+function catalog_init(){
+    //drupal_add_js('misc/ui/jquery.ui.progressbar.min.js');
+    //drupal_add_css('misc/ui/jquery.ui.progressbar.css');
+    drupal_add_js(drupal_get_path('module', 'catalog') . '/catalog.js');
+    drupal_add_library('system', 'ui.progressbar'); 
+    // Load catalog_operation.inc from the catalog module.
+    module_load_include('inc', 'catalog', 'catalog_operation');
+    module_load_include('inc', 'catalog', 'catalog_upload_by_xls');
+}
+
+
+/**
+ * Implements hook_menu().
+ */
+function catalog_menu() {    
+  $items['upload_catalog_with_xls'] = array(
+    'title' => 'Upload Catalog',
+    'description' => 'Upload Catalog',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catalog_upload_catalog'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['upload_catalog'] = array(
+    'title' => 'Upload Catalog',
+    'description' => 'Upload Catalog',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catalog_upload_catalog_with_xls'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'catalog_upload_by_xls.inc'
+  );
+  
+  $items['delete_catalog'] = array(
+    'title' => 'Delete Catalog',
+    'description' => 'Delete Catalog',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catalog_delete_catalog_op'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'catalog_operation.inc'
+  );
+  
+  
+   $items['update_catalog_by_column'] = array(
+    'title' => 'Update catalog by column',    
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catalog_update_by_column_op'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'catalog_operation.inc'
+  );
+  
+  
+   $items['catalog/dashborad/view'] = array(
+    'title' => 'Catalog Dashboard',
+    'description' => 'Here you can download catalogs broken records.',
+    'page callback' => 'catalog_dashboard_preview',
+    //'page arguments' => array('catalog_upload_catalog'),
+    'access arguments' => array('access content'),   
+  );
+    
+  $items['catalog/broken/records'] = array(
+    'title' => 'Broken Records',
+    'description' => 'Here you can download catalogs broken records.',
+    'page callback' => 'catalog_download_broken_records',
+    //'page arguments' => array('catalog_upload_catalog'),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  // Add-more button that creates additional form elements.
+  // See ajax_example_graceful_degradation.inc.
+  $items['catalog/filter/download'] = array(
+    'title' => 'Filter Catalog',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catalog_filter_add_more'),
+    'access callback' => TRUE,
+    'file' => 'catalog_filter_export.inc',
+    'access arguments' => array('access content'),
+    'weight' => 8,
+  );
+  
+  
+  $items['catalog/multi_op'] = array(
+	  'title' => 'Catalog Multiple Operations :',   
+    'page callback' => 'catalog_multi_operations',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'catalog_operation.inc'
+  );
+  
+  
+  return $items;
+ }
+
+ /**
+  * Creation of catalog upload form
+  */
+ function catalog_upload_catalog($form, &$form_state){  
+  require_once 'Classes/PHPExcel.php';
+  //include 'simple/simplexlsx.class.php';
+  $file_cat_ref = drupal_get_path('module', 'catalog') . "/catalog_upload_example.xlsx";//template_upldate_catalog
+    
+	$form['catalog_upload'] = array(
+		'#type' => 'file',
+		'#title' => t('Choose a file'),
+		'#title_display' => 'invisible',
+		'#size' => 22,      
+		'#description' => '#Note : You can upload up to thirty thousands records at a time.'."<br>". '<h3>To download catalog template file click ' .l('Here', $file_cat_ref).'</h3>',
+		'#weight' => -10,
+	);
+	
+    $form['read_excel_file'] = array(
+		'#type' => 'submit', 
+		'#value' => t('Upload'),
+	);
+    
+     $form['progress_bar'] = array(
+		'#prefix' => '<div id="catalog-progress-wrapper">',
+        '#suffix' => '</div>',
+	);
+    
+    
+	return $form;
+ }
+ 
+ /**
+  * Validate a catalog upload form
+  */
+ function catalog_upload_catalog_validate($form, &$form_state){
+    //print_r($_FILES);  die;
+     require_once 'Classes/PHPExcel.php';
+     //include 'simple/simplexlsx.class.php';
+	  $file = file_save_upload('catalog_upload', array('file_validate_extensions' => array('xlsx xls'),));
+	  //require_once 'excel_reader2.php';
+
+    //var_dump($file); die;
+
+	if ($file) {
+      if ($file = file_move($file, 'public://')) {
+        $form_state['values']['file'] = $file;
+      }else {
+        form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+      }
+    }
+	
+	$file=$form_state['values']['file'];
+	$file->status = FILE_STATUS_PERMANENT;
+	
+	 $filepath = drupal_realpath($file->uri);
+	
+	//print_r($filepath); die;
+    //$data = new Spreadsheet_Excel_Reader($filepath);
+	//$numrows= count($data->sheets[0]['cells']);
+    //$numcols= $data->sheets[0]['numCols']; 
+    
+    
+    ######## New Code #########
+    
+    $inputFileName = $filepath;
+	$inputFileType = PHPExcel_IOFactory::identify($inputFileName);  
+	$objReader = PHPExcel_IOFactory::createReader($inputFileType);  
+	$objReader->setReadDataOnly(true);
+	
+	 $objPHPExcel = $objReader->load($inputFileName);  
+ //	$total_sheets=$objPHPExcel->getSheetCount();  
+ //	$allSheetName=$objPHPExcel->getSheetNames();
+	 $objWorksheet = $objPHPExcel->setActiveSheetIndex(0); // first sheet  
+	
+    $highestRow = $objWorksheet->getHighestRow();  
+	  $highestColumn = $objWorksheet->getHighestColumn();
+    $highestColumnIndex = PHPExcel_Cell::columnIndexFromString($highestColumn);
+ 
+	
+    ######## END New Code #########
+    // echo $highestRow; die;
+	
+	if($highestColumnIndex != 31){
+	  form_set_error('catalog_upload', 'Uploaded file doesn\'t match column count.' . $highestColumnIndex);
+	} 
+	
+  if($highestRow > 300000){
+        form_set_error('catalog_upload', 'Uploaded file has more than thirty thousand records. Please upload it max fifty thousand records only.');
+  }
+	//$failed = array();
+	     
+ }
+ 
+    
+ /**
+  *  Handling catalog submition. 
+  */ 
+ function catalog_upload_catalog_submit($form, &$form_state){
+   	require_once 'Classes/PHPExcel.php';
+	//require_once 'excel_reader2.php';
+	global $user;
+	
+	//Delete all error nodes before new error nodes creation. 
+	//catalog_delete_error_nodes($type = 'catalog_error_node');	
+
+ 	$file = $form_state['values']['file'];
+	$file->status = FILE_STATUS_PERMANENT;
+	
+    //$data = new Spreadsheet_Excel_Reader($filepath);
+	
+   // $numrows = count($data->sheets[0]['cells']);
+    //$numcols = $data->sheets[0]['numCols']; 
+    
+    
+    ###########New xls Reader##########
+    
+  $filepath = drupal_realpath($file->uri);
+	$inputFileName = $filepath;
+	$inputFileType = PHPExcel_IOFactory::identify($inputFileName);  
+	$objReader = PHPExcel_IOFactory::createReader($inputFileType);  
+	$objReader->setReadDataOnly(true);
+	
+	$objPHPExcel = $objReader->load($inputFileName);  
+	$objWorksheet = $objPHPExcel->setActiveSheetIndex(0); // first sheet  
+	
+  $highestRow = $objWorksheet->getHighestRow();  
+	$highestColumn = $objWorksheet->getHighestColumn();
+	$highestColumnIndex = PHPExcel_Cell::columnIndexFromString($highestColumn);  
+
+	
+    
+    
+	$numrows = $highestRow ;
+	$numcols = $highestColumnIndex;
+    
+    ####### End new Xls reader ############	
+	$flag = 0; 	
+	$update_cnt = $save = $broken = 0; 
+  $output = array();
+    
+    // run through a rows here 
+    for($row = 2; $row <= $highestRow; $row++) {   
+	   // run through a column here      
+      for ($col = 0; $col <$highestColumnIndex; $col++) {
+	    $value=$objWorksheet->getCellByColumnAndRow($col, $row)->getValue();
+        $output[$row][$col] = $value;
+      } 	  
+     
+     
+   //  dpr($output); die;
+	//$newNode->title = $output[$row][2];   
+    ########### Start Run time Validation ####################
+	$isbn13 = catalog_create_thirteen_digit_isbn($output[$row][1]); //ISBN13
+    $isbn = $output[$row][2]; ////ISBN 
+     
+    
+    $book_image = $output[$row][15];
+    
+   /* //This valdation for book image
+    if(empty($book_image)){
+            $book_image = $isbn13.'.jpg';            
+    }else{        
+        if(stristr($output[$row][16], '.jpg') === FALSE) {
+            $book_image = $output[$row][16].'.jpg'; 
+        }
+    } */   
+    ########### End Run time Validation ####################
+    
+   
+   	$flag = array();
+    
+	//print_r($output[$row]);die;
+	//Validate the xls information, here we are checking rowby row values
+    $flag[$row] = catalog_check_xls_validation($output[$row]);  
+    
+    //transliterate
+    $trans_book_desc = mb_convert_encoding($output[$row][14],"HTML-ENTITIES",'utf8');
+    
+    //Calculate listing price
+    $listing_price = stock_price_calculator($isbn13,floatval($output[$row][20]),check_plain($output[$row][23]));
+
+    // Create an array to save or update catalog in db.
+	$catalog_xls_info = array(
+		'title'=> catalog_make_text_sentence_case( mb_convert_encoding($output[$row][0],"HTML-ENTITIES",'utf8')),// catalog_make_text_sentence_case(mb_convert_encoding($output[$row][1], 'Windows-1252', 'UTF-8')),//catalog_make_text_sentence_case($output[$row][1]),
+		'isbn13'=> check_plain($isbn13),      //$isbn13
+		'isbn'=>  check_plain($isbn),      //$isbn        
+		'author1'=> ucwords(mb_convert_encoding($output[$row][3],"HTML-ENTITIES",'utf8')),
+		'author2'=> ucwords(check_plain($output[$row][4])),
+		'author3'=>  ucwords(check_plain($output[$row][5])),
+		'author4'=>  ucwords(check_plain($output[$row][6])),
+		'author5'=>  ucwords(check_plain($output[$row][7])),
+		'author6'=>  ucwords(check_plain($output[$row][8])),
+		'author7'=>  ucwords(check_plain($output[$row][9])),
+		'author8'=>  ucwords(check_plain($output[$row][10])),
+		'author9'=>  ucwords(check_plain($output[$row][11])),
+		'author10'=> ucwords(check_plain($output[$row][12])),
+                
+		'author_introduction'=>check_plain(empty($output[$row][13]) ? '-' : $output[$row][13]),
+		'book_description'=> empty($output[$row][14]) ? '-' : trim($trans_book_desc),//iconv('Windows Latin 1','UTF-8',$output[$row][15]), //output[$row][15],
+        //$output[$row][16]
+        
+		'book_image'=> $book_image,
+		'book_reviews'=>check_plain($output[$row][16]),
+         
+		'category_genre'=>check_plain(str_replace("/",",",$output[$row][17])),
+		'ebay_category_id_1'=>check_plain($output[$row][18]),
+		'ebay_category_id_2'=>check_plain($output[$row][19]),
+		'mrp_inr'=>floatval($output[$row][20]),
+		'number_of_pages'=>$output[$row][21],
+        
+		'published_date_edition'=> empty($output[$row][22]) ? '-' : check_plain($output[$row][22]),
+		'publisher'=>check_plain($output[$row][23]),
+		'type_hardcover_paperback'=>check_plain($output[$row][24]),
+		'seller_id'=> empty($output[$row][25]) ? '-' : check_plain($output[$row][25]),
+        
+		'edition'=>check_plain($output[$row][26]),
+    'language'=>ucwords(check_plain($output[$row][27])),
+		'rating'=>check_plain($output[$row][28]),
+		'meta_keywords'=>check_plain($output[$row][29]),
+		'meta_description'=>check_plain($output[$row][30]),
+    'listing_price' => $listing_price,
+   // 'imprint' => check_plain($output[$row][30]),
+        
+		);     
+        
+	 $catalog_xls_info['status'] = 1; 
+	  
+	  //print_r($flag); die;
+		 
+	 //Save error rows in another caontent type
+	if($flag[$row]['status'] == 'False'){	
+        //error_message
+        $error_message = $flag[$row]['error_message'];
+              
+	    $catalog_error_details = array_merge($catalog_xls_info, array('catalog_temp_error_message' => $error_message));
+       // print_r($catalog_error_details);die;
+        
+        if($broken == 0){
+             //Empty "catalog_error_details" tabel before saveing new informations.
+             $result = db_truncate('catalog_error_details')->execute();
+        }       
+        
+        unset($catalog_error_details['listing_price']);
+        
+        $table_name = 'catalog_error_details';
+	    catalog_save_records($table_name, $catalog_error_details); // save created time 
+        
+        //catalog_temp_error_message
+	    ++$broken;	   
+	}else{	
+	   //Save/Update nid in catalog content type.
+		$isbn_res = catalog_get_nid_by_isbn($isbn13);// How to get ISBN if we dont have ISBN in xls list?
+		
+		if($isbn_res){        
+		  $catalog_xls_info['isbn13'] = $isbn13;
+		  $catalog_xls_info['changed'] = time();//Save updated time
+		  catalog_update_records($catalog_xls_info);	           
+		  ++$update_cnt;//Keep updated record count		  
+		}else{	 	
+		  if($isbn13){ //Only ISBN having recors will creats
+           //dpr($catalog_xls_info);die;$catalog_xls_info
+            $catalog_xls_info['created'] = time();//Save updated time
+            $table_name = 'catalog';
+		    catalog_save_records($table_name, $catalog_xls_info); // save created time 
+			++$save; //Keep newly saved record count 			
+		  }
+		}	
+	}	
+	
+   }//End for loop	
+	
+	$xls_broken_rows = ($broken == 0) ? 0: 'Click <a href="catalog/broken/records"> Here </a> to download the: ' .$broken.' broken records.';
+	
+	 drupal_set_message('Catalog total records were : '. ($numrows - 1)  .'<br/>New created catalogs are : '. $save
+	                   .'<br/> Updated catalogs are : '. $update_cnt.'
+					   <br/>');
+     if($xls_broken_rows){
+        drupal_set_message($xls_broken_rows,'error');
+     }   
+                          
+ }
+  
+ 
+ /**
+ * This will check each row and column info and validate it.
+ *
+ * @param $xls_data
+ *  Is a catalog xls having catalog information in rows and column  
+ * 
+ * @return
+ *   $flag is true if no error else false for each row. 
+ *
+ * @todo
+ *  this is temporary  validation need to validate it extensive.
+ * It will check row vise information
+ */
+function catalog_check_xls_validation($xls_value){  
+  $error = $error_info = array();
+    //print_r($xls_value); die;
+  //foreach($xls_data as $key => $xls_value){    
+ 
+     $status = 'TRUE';
+     $error_message ='';
+	// To check title should not be blank
+	if(empty($xls_value[0]) || trim($xls_value[0]) == ""){
+	  $status = 'False';  
+      $error_message .= 'Title should not be blank';    
+	}
+    
+   	if(trim($xls_value[0]) == "-"){	  
+	  $status = 'False';  
+      $error_message .= 'Hypen(-) should not be in Title'; 
+	}
+	
+    #################################### Check ISBN ######################
+	if(empty($xls_value[1]) || trim($xls_value[1]) == ""){
+	   $status = 'False';
+	  //$error[$key]['status'] = 'FALSE';	  
+      $error_message .= isset($error_message) ? '| ISBN3 should not be blank' : 'ISBN3 should not be blank'; 	 
+	}else{	   
+      $length_isbn = strlen($xls_value[1]);       
+      if($length_isbn > 20){                  
+        $status = 'False';
+	    $error_message .= isset($error_message) ? '| ISBN3 value is length is more than 20 Char' : 'ISBN3 value is length is more than 20 Char';                               
+      }
+	}  
+   #################################### Check ISBN ######################
+   
+	//empty($xls_value[1]) || trim($xls_value[1]) == ""
+	if(empty($xls_value[17]) || trim($xls_value[17]) == ""){
+       $status = 'False';
+	   // To check category genre should not be blank	
+	   $error_message .= isset($error_message) ?' | category genre should not be blank' : ' category genre should not be blank'; 	                        
+	}
+	
+	if(empty($xls_value[18]) || trim($xls_value[18]) == ""){	
+	     $status = 'False';
+	    // To check ebay category id value should not be blank	    
+        $error_message .= isset($error_message) ? '| ebay category id should not be blank' : 'ebay category id should not be blank'; 	                          
+	   //return false;
+	}
+	
+	if(empty($xls_value[20])|| trim($xls_value[20]) == ""){	
+	     // To check MRP value should not be blank
+	    $error_message .= isset($error_message) ? '| MRP value should not be blank' : ' MRP value should not be blank'; 
+        $status = 'False';
+						    
+	  //return false;
+	}
+    
+    
+    //Seller id
+   	if(empty($xls_value[25])|| trim($xls_value[25]) == ""){		    
+        $error_message .= isset($error_message) ? ' | Seller id value should not be blank' : 'Seller id value should not be blank';
+  	    $status = 'False';                     
+	  //return false;
+	}
+    
+    $error_info = array(
+                    'error_message' => $error_message,
+                    'status' => $status
+                );    
+    
+  return $error_info;
+}
+
+ /**
+  * Creation of catalog upload form
+  */
+ function catalog_download_broken_records(){  
+   $node_info = catalog_get_error_records();
+      
+   $header = array('Title','ISBN13','ISBN','Author 1','Author 2','Author 3','Author 4','Author 5','Author 6','Author 7','Author 8','Author 9','Author 10',
+                    'Author Introduction','Book description','Book Image','Book reviews','Category/ genre','eBay category ID 1','eBay category ID 2','MRP (INR)','Number of pages','Published date/ Edition',
+                   'Publisher','Type - Hardcover/ Paperback','Seller Id','Edition','Langueage','Rating','Meta Keywords','Meta  Description','Error Messages');
+  //Create a xls 
+   $xls_content_row = '';
+  foreach($node_info as $rwcount => $newNode){
+    $row = array();
+    $row[] =    $newNode->title;
+	$row[] =    $newNode->isbn13;
+	$row[] =	$newNode->isbn;
+	$row[] =	$newNode->author;
+	$row[] =	$newNode->author2;
+	$row[] =	$newNode->author3;
+	$row[] =	$newNode->author4;
+	$row[] =	$newNode->author5 ;
+	$row[] =	$newNode->author6;
+	$row[] =	$newNode->author7;
+	$row[] =	$newNode->author8;
+	$row[] =	$newNode->author9;
+	$row[] =	$newNode->author10;
+	$row[] =	$newNode->author_introduction;
+	$row[] =	trim($newNode->book_description);
+	
+	$row[] =	$newNode->book_image;
+	$row[] =	$newNode->book_reviews;
+	$row[] =	$newNode->category_genre;
+	$row[] =	$newNode->ebay_category_id_1;
+	$row[] =	$newNode->ebay_category_id_2; 
+	$row[] =	isset($newNode->mrp_inr) ? $newNode->mrp_inr : '';	
+	$row[] =	$newNode->number_of_pages;
+	$row[] =	$newNode->published_date_edition;
+	$row[] =	$newNode->publisher;
+	$row[] =	$newNode->type_hardcover_paperback;
+	$row[] =	$newNode->seller_id;
+	$row[] =	$newNode->edition;
+	$row[] =	$newNode->language;
+	$row[] =	$newNode->rating;
+	$row[] =	$newNode->meta_keywords;
+	$row[] =	$newNode->meta_description;
+//	$row[] =	$newNode->imprint;
+    $row[] =	$newNode->catalog_temp_error_message;	  
+
+	//$rows[]=$row;              
+    $xls_content_row .= implode("\t", array_values($row)) . "\r\n";
+  }
+  
+	$xls_content_header = implode("\t", array_values($header));
+	$xls_content = $xls_content_header."\n".$xls_content_row;
+	$filename = 'Error_list_'.date("d_m_Y"); 
+    
+	header("Content-type: text/plain; charset=UTF-8");
+	header("Content-Disposition: attachment; filename=$filename");
+	header("Content-Type: application/vnd.ms-excel"); 
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	print $xls_content;
+	exit();   
+ }
+ 
+ 
+/**
+ * generate Unixtimestamp from drupal form date popup
+ * @param
+ * $date_tm is inputed date
+ * 
+ * @return 
+ * unixtime stamp of date
+ */
+function catalog_generate_uinx_time_stamp($date_tm){
+  $hour = $min = 0;
+  $date_xpo = explode(" ",$date_tm);
+  
+  $date_xpo_split_date = explode("-", $date_xpo[0]); //Date values
+  
+   //print_r($date_xpo_split_date); die;
+   //here [ 0=> year, 1=> Month, 2=> Day ]   
+  $year = $date_xpo_split_date[0];  
+  $month = $date_xpo_split_date[1];  
+  $day = $date_xpo_split_date[2];  
+  
+  if(!empty($date_xpo[1])){
+    $date_xpo_split_time = explode(":", $date_xpo[1]); // Time Values  
+    $hour = $date_xpo_split_time[0];
+    $min = $date_xpo_split_time[1];
+  }
+  
+  $unxtime = mktime($hour,$min,0,$month,$day,$year);
+  
+  return $unxtime;
+}
+
+/**
+ * Make any text to sentence case.
+ */
+function catalog_make_text_sentence_case($s) {
+  
+   $str = strtolower($s);
+   $cap = true;
+   $ret = '';
+   for($x = 0; $x < strlen($str); $x++){
+       $letter = substr($str, $x, 1);
+       if($letter == "." || $letter == "!" || $letter == "?"){
+           $cap = true;
+       }elseif($letter != " " && $cap == true){
+           $letter = strtoupper($letter);
+           $cap = false;
+       }
+       $ret .= $letter;
+   }
+   return $ret;
+}
+
+/**
+ * Create 13 digit ISBN if current ISBN lenghtn is 10
+ * 
+ * Here function isbn10_to_13 define in stcck module.
+ * @return
+ * $isbn 
+ */
+function catalog_create_thirteen_digit_isbn($isbn){
+     $length_isbn = strlen($isbn);
+    /* if($length_isbn == 10){
+        $isbn = isbn10_to_13($isbn13);
+     }  */ 
+     return $isbn;
+}    
+
+
+
+/**
+ * Implements ajax submit callback of read_excel_file
+ */
+function catalog_dashboard_preview(){    
+    $query = db_select('catalog', 'c')
+    ->fields('c', array('title', 'isbn13','author1','book_description','ebay_category_id_1','number_of_pages','published_date_edition','publisher'));
+  
+    $query->addExpression('COUNT(*)','totalcount');
+   
+    $dashboard_info = $query->execute()->fetchAssoc();//fetchAssoc
+    //  dpr($dashboard_info); die;    
+    $rows = array();
+    $header = array(
+            'Fields',
+            'Total Available',
+            'Data Available',
+            'Data Not Available - Blank/ - (Hyphen)' ,
+            'NA %'                
+           );  
+                       
+    //Loop through data
+    foreach($dashboard_info as $ky => $dashboard_values){            
+     $row = array();              
+     if($ky != 'totalcount'){              
+         $avialable_data = catalog_find_data_available_by_key($ky);
+         $total_count = $dashboard_info['totalcount'];
+         $na_data_found = $total_count-$avialable_data;
+         $na_perc = round(($na_data_found/$total_count)*100,2);
+         
+         $row[] = ucfirst(str_replace("_"," ",$ky));
+         $row[] = $total_count;  
+         $row[] = $avialable_data;         
+         $row[] = $na_data_found;         
+         $row[] = $na_perc ."%";           
+     }   
+     $rows[] = $row;
+    }
+    
+   $tabl = theme('table',array('header' => $header,'rows'=>$rows));
+   return '<div id="stock_excel_preview_area">'.$tabl.'</div>';
+}
+
+/**
+ * Find blank or Hypen (_) records in catalog
+ */
+function catalog_find_data_available_by_key($key){
+    $query = db_select('catalog', 'c');
+    $query->addExpression('COUNT('.$key.')', $key); 
+    $query->condition($key," ",'!=');
+    $query->condition($key,"-",'!=');
+    $count_info = $query->execute()->fetchField();//fetchAssoc
+    return $count_info;
+}
+
+/**
+ * we've added an extra line to the cleanData function to detect double-quotes and escape any value that contains them. 
+ * Without this an uneven number of quotes in a string can confuse Excel.
+ 
+function catalog_filter_clean_data(&$str) {   
+  $str = preg_replace("/\t/", "\\t", $str); 
+  $str = preg_replace("/\r?\n/", "\\n", $str); 
+  if(strstr($str, '"')) $str = '"' . str_replace('"', '""', $str) . '"'; 
+  $str = mb_convert_encoding($str, 'Windows-1252', 'UTF-8');
+    //$str = str_replace("\n","<br>", $str);
+}*/
+
+function catalog_filter_clean_data(&$str) { 
+  //$str = preg_replace('/\s\s+/', '', $str);
+  //$str = preg_replace("/\t/", "\\t", $str); 
+  //$str = preg_replace("/\r?\n/", "\\n", $str); 
+  $str = preg_replace( '~(\s)+~msx', ' ', $str );
+  if(strstr($str, '"')) $str = '"' . str_replace('"', '""', $str) . '"'; 
+  $str = mb_convert_encoding($str, 'Windows-1252', 'UTF-8');
+}
+
+/**
+ * Convert <br> tag to \n
+ */
+function br2nl($string)
+{
+    return preg_replace('/\<br(\s*)?\/?\>/i', "\n ", $string);
+}  
+
+
+
+/**
+ * Multiple operation for catalog
+ * Add, Delete and Upadet
+ *  
+ */
+function catalog_multi_operations(){
+    $out  = '';
+    $out .= '<hr><br/><br/><b>Upload Catalog : </b>';
+    $out .= drupal_render(drupal_get_form('catalog_upload_catalog_with_xls'));
+    
+    $out .= '<hr><br/><br/><b>Delete Catalog : </b>';
+    $out .= "<br/>".drupal_render(drupal_get_form('catalog_delete_catalog_op'));
+    
+    $out .= '<hr><br/><br/><b>Update Catalog by fields : </b>';
+    $out .= "<br/>".drupal_render(drupal_get_form('catalog_update_by_column_op'));   
+    
+    return $out;
+}

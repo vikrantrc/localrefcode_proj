@@ -1,0 +1,9 @@
+name = Post Procure Manual
+description = "About Post Procurement and printing the invoice manually"
+package = Book Console
+core = 7.x
+dependencies[] = ebay_books_admin
+
+version = "7.x-3.0-rc3"
+core = "7.x"
+

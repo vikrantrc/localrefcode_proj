@@ -1,0 +1,71 @@
+.stock-filter-from-date, .stock-filter-to-date{
+	float:left;
+}
+.form-item-template-name label{
+	float :left;
+	
+}
+.form-item-template-name{
+	padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 32px;
+}
+.page-stock-search .fieldset-wrapper{
+	padding:0px!important;
+}
+.page-stock-search  fieldset{
+	min-height:125px;
+}
+#edit-stock-search-submit{
+	float:right;
+}
+#stock_search_preview_area{
+	float:left;
+	clear:both;
+	width:100%;
+}
+#edit-create-distributor label{
+  float:left;
+  min-width: 253px;
+}
+
+.stock_search_submit{
+    float:left;   
+}
+.stock_search_downlaod_file{
+    float:left;   
+}
+#fieldset_body{
+    margin-top: 10px;
+    float:left;
+    width:100%;
+    padding:10px;
+}
+
+#block-discount-discount-shortcut-icon-block{
+    color: #B40404;
+    float: right;
+    margin-left: 37px;
+    font-weight: bold;
+}
+
+#block-discount-discount-shortcut-icon-block #stock_list_update_count,#timer_expire{
+    background: url("images/clsk.png") no-repeat scroll 0 0 transparent;
+    display: block;
+    font-size: 24px;
+    height: 32px;
+    padding-top: 25px;
+    text-align: center;
+    text-indent: 30px;
+    width: 60px;
+    text-decoration: none;
+    float:left;
+}
+
+#block-discount-discount-shortcut-icon-block #stock_list_update_count{
+    background: url("images/stockdwn.png") no-repeat scroll 0 0 transparent;
+}
+ul.nice-menu a {
+    color: #FFFEFF !important;
+    display: block;
+}

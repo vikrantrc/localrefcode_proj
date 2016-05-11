@@ -1,0 +1,901 @@
+<?php
+ //test isbn9780143418764
+/**
+* Implements hook_menu().
+*/
+function post_procure_menu() {
+$items['procured/pack'] = array(
+	'title' => 'See isbn details and print it',
+	'page callback' => 'drupal_get_form',
+	'page arguments' => array('post_procure_show_details'),
+	'access arguments' => array('access content'),
+	'type' => MENU_CALLBACK,
+);
+$items['procured/pack/%/%'] = array(
+	'page callback' => 'post_procure_show_details_byisbn',
+	'page arguments' => array(2,3),
+	'access arguments' => array('access content'),
+	'type' => MENU_CALLBACK,
+);	
+$items['procured/packprint/%/%/%'] = array(
+	'page callback' => 'post_procure_print_details_byisbn',
+	'page arguments' => array(2,3,4),
+	'access arguments' => array('access content'),
+	'type' => MENU_CALLBACK,
+);	
+ $items['procured/rack/download'] = array(
+    'page callback' => 'post_procure_download_rack',
+     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    );
+    $items['procured/rack/operations'] = array(
+    'page callback' => 'post_procure_operations_rack',
+     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    );
+      $items['procured/rack/completeorder'] = array(
+    'page callback' => 'post_procure_complete_orders',
+     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    );
+        $items['procured/dow'] = array(
+        'page callback' => 'post_procur_dow',
+        'access arguments' => array('access content'),
+        'type' => MENU_CALLBACK,
+    );
+        $items['procured/checks'] = array(
+    'page callback' => 'post_procur_dows',
+     'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    );
+    
+  //  procured/rack/operations
+return $items;
+}
+function post_procur_dow(){
+  $file_cat_ref = drupal_get_path('module', 'post_procure') . "/files.zip";//
+    
+ 	  $form['nextmain2']['back']=array(
+    '#type' => 'markup',
+     
+    '#markup' =>'<h3>To download Post Procure Tables click ' .l('Here', $file_cat_ref).'</h3>',
+		 
+ 
+   );
+	
+  return $form;
+    
+}
+function post_procur_dows(){
+    print_r("dd");die;
+    
+}
+
+/**
+ * Implements prost procure printing details.
+ */
+function post_procure_show_details(){
+	global $base_path;
+	drupal_add_js(drupal_get_path('module','post_procure').'/post_procure.js');
+	drupal_add_css(drupal_get_path('module','post_procure').'/post_procure.css');
+   // sales_update_sla(); //this function is called in sales module on order processing page
+	$form['fset'] = array(
+		'#type' =>'fieldset',
+		'#title' => t('Please enter quantity before scanning ISBN.&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp;Please Refresh If page is ideal for some time'),	
+        
+	);
+    $form['fset']['qty_p']['qty'] = array(
+        '#type' => 'textfield', 
+        '#title' => 'Quantity',
+        '#description' => t('Considered 1 if left blank'),
+        '#attributes' => array('class' => array('procure_print_qty')),
+        '#size' => 3, 
+    );
+	$form['fset']['isbn'] = array(
+		'#type' => 'textfield', 
+		'#title' => 'Enter ISBN to Check',
+		'#description' => t('Please click out to proceed (Due to cache issue, it may take long time to process some item. If you feel it so, please refresh the page & try again)'),
+		'#attributes' => array('class' => array('procure_print_val')),
+		'#required'=> TRUE,
+	);
+  	$form['wrapper'] = array(
+         '#prefix'  => '<div class="popup_order">',
+	   	'#suffix'  => '<a id="ok" href="">[ Ok ]</a></div>',
+	);
+      $form['markup3'] = array(
+    '#type' => 'markup', 
+    '#prefix' => '<div id="nextmainpost">',
+    '#suffix' => '</div>',
+    '#markup' => l("Download Rack","procured/rack/download"),
+  );
+ 
+ $form['markup5'] = array(
+    '#type' => 'markup', 
+    '#prefix' => '<div id="nextmainpost2">',
+    '#suffix' => '</div>',
+    '#markup' => l("Completed Order List","procured/rack/completeorder"),
+  );
+  	
+	return $form;
+}
+ 
+
+/**
+	* Implements procure priting details ajax call
+	*/
+function post_procure_show_details_byisbn($isbn,$qty_loop) {
+    ////validation 1
+    if($qty_loop <= 0){
+    echo"Please Enter Valid Quantity..";
+    die;
+    }
+    ////validation 2    
+    if($qty_loop > 20 ){
+    echo"Very High quantity can cause cache issues please enter less quantity..";
+    die;
+    }
+      $realcounter=$qty_loop;  
+  for($i=1;$i<=$qty_loop;$i++){
+        //for loop to scan isbn number of times the quantity ent
+    //validation 3
+    $check_isbn_qty=db_select('sells_records_items','i');
+    $check_isbn_qty->condition('i.custom_label',trim($isbn));
+    $check_isbn_qty->condition('i.printed',0);
+    $check_isbn_qty->addExpression('SUM(i.quantity)','sum_qty');
+    $check_isbn_qty_res=$check_isbn_qty->execute()->fetchField();
+    if($check_isbn_qty_res<$realcounter && $check_isbn_qty_res!=0 ){
+    $output="Only ".$check_isbn_qty_res." quantity available of this ISBN.Edit quantity and rescan.";
+    echo$output;
+    die;
+    }
+    $op_mess_scan_old .= $op_mess_scan."|";
+    $op_mess_scan=0;
+    $qry = db_select('sells_records_items','i');
+	$qry->join('sales_records','s','s.sales_record_no = i.sales_record_number');
+	$qry->fields('i',array('sales_record_number','item_number','item_title','custom_label','sell_rec_id','quantity','procurestatus'));
+	$qry->fields('s',array('sales_record_no','record_uploaded_date'));
+	$qry->orderBy('s.record_uploaded_date','DESC');
+	$qry->condition('i.custom_label',trim($isbn));
+    $qry->condition('i.printed',0);
+    $qry->range(0,1);
+	$result = $qry->execute()->fetchAll();
+    $pin_error = $awb = 0;
+	$updat = 1;
+	$mul_chk = $ord = $count_order = $count_qty = '';
+	foreach($result as $k=>$v) {
+    $item_number_isbn=$v->item_number;
+    $record_uploaded_date = $v->record_uploaded_date;
+    $sales_record_no = $v->sales_record_no;
+    $awb_sell_rec_id = $v->sell_rec_id;
+    $custom_label = $v->custom_label;
+    $sales_qty = $v->quantity;
+    $procure_orig_status=$v->procurestatus;
+    }
+ //  check whether an order is single order or multiple order
+    $select_orderid = db_select('sells_records_items','c');
+    $select_orderid->condition('custom_label',$custom_label);
+    $select_orderid->addExpression('COUNT(sell_rec_id)','cnt_srn');
+    $select_orderid_res = $select_orderid->execute()->fetchAll();
+    $count_order = $select_orderid_res[0]->cnt_srn;
+     
+    if($count_order>1 ){
+    $single_order=0;
+    $mul_chk = 'Its blongs to multi order !'; 
+    }else{
+			$single_order=1;
+          $mul_chk="It is a single order ISBN"; 
+    }
+  // update sells_records_items to set this isbn is printed/scanned
+	if($single_order==0){ //multiple order isbn logic
+        //d////////////update procure status and printe///////////////
+        $check_status_scanned = db_select('sells_records_items','sl');
+        $check_status_scanned->fields('sl',array('procurestatus','quantity','sell_rec_id'));
+        $check_status_scanned->condition('sales_record_number',$sales_record_no);
+		$check_status_scanned->condition('custom_label',$custom_label);
+        $result = $check_status_scanned->execute()->fetchAll();
+        foreach($result as $res){
+            $sell_rec_id = $res->sell_rec_id;
+            $counter_mine = $res->procurestatus+1;	
+            $qty=$res->quantity;
+            if($counter_mine==$res->quantity){
+                $update_printed_status = db_update('sells_records_items')
+                ->fields(array(
+                'printed' => 1,
+                'procurestatus' => $counter_mine				
+                ))
+                ->condition('sell_rec_id',$sell_rec_id,'=')
+                ->execute();
+            }else{
+                $update_new_status = db_update('sells_records_items');
+                $update_new_status->fields(array('procurestatus' => $counter_mine));
+                $update_new_status->condition('sell_rec_id',$sell_rec_id,'=');
+                $update_new_status->condition('procurestatus',$qty,'!=');
+                $update_new_status->execute();
+            }
+		}
+        ////////////////////////////////////////////////////////////////////
+        ////////////////SLA Check for refund emergency here//////////////// 
+        $get_sla_zero=db_select('ebay_books_order_assigned','ec');
+        $get_sla_zero->join('sells_records_items','sc','ec.isbn=sc.custom_label');
+        $get_sla_zero->fields('ec',array('temp_sla'));
+        $get_sla_zero->condition('sc.custom_label',$custom_label);
+        $get_sla_zero->condition('ec.order_id',$sales_record_no);
+        $isbn_sla= $get_sla_zero->execute()->fetchAll();
+        foreach($isbn_sla as $detisbn){
+         $sla_check=$detisbn->temp_sla;
+        }
+        if($sla_check==0){
+        $update_notify_status = db_update('sells_records_items')
+        ->fields(array(
+        'order_notify' => 1,
+        ))
+        ->condition('sell_rec_id',$awb_sell_rec_id,'=')
+        ->condition('custom_label',$custom_label,'=')
+        ->execute();
+        $output="ISBN ".$custom_label.":of Order no:".$sales_record_no.":is ready to be shipped (sla zero)";
+        $op_mess_scan=3;
+          }
+        //////////////////////////////////////////////////////////////////////
+        //Else check remaining orders for same isbn whether any order getting completed or not 
+       else{$comp_status=0;//keeps track of order count
+            $get_remain_order=db_select('sells_records_items','s2');
+            $get_remain_order->condition('custom_label',$custom_label);
+            $get_remain_order->fields('s2',array('sales_record_number'));
+            $get_remain_order->condition('order_notify',1,'!=');
+            $result_remain_get = $get_remain_order->execute()->fetchAll();
+            $num_rows_o = $get_remain_order->countQuery()->execute()->fetchField();
+            $print_counter_check=0;
+            $check_how=0;
+            $count_comp_order=0;//keeps track of first condition output count
+            $count_comp_order2=0;//keeps track of second condition output count
+            $count_comp_order3=0;//keeps track of third condition output count
+            $loop_output="";
+            foreach($result_remain_get as $rs_order){
+            $rack_counter=0;
+            $comp_status++; 
+            $get_order_details=db_select('sells_records_items','s3');
+            $get_order_details->fields('s3',array('sales_record_number','procurestatus','quantity','sell_rec_id','printed','custom_label'));
+            $get_order_details->condition('s3.sales_record_number',$rs_order->sales_record_number);
+            $get_order_details->condition('order_notify',1,'!=');
+            $result_remain_order = $get_order_details->execute()->fetchAll();
+            $num_rows = $get_order_details->countQuery()->execute()->fetchField();
+            $print_counter=0;
+             foreach($result_remain_order as $rs_order_each){
+            $print_score=0;
+            $nextscan=0;
+            $print_score=$rs_order_each->printed;
+            $cur_qty=$rs_order_each->quantity;
+            $cur_sell_rec_id=$rs_order_each->sell_rec_id;
+            $cur_sales_rec_no=$rs_order->sales_record_number;
+            $cur_custom_label=$rs_order->custom_label;
+            if($print_score==1){
+            $print_counter++;
+            }  
+ 
+            if($num_rows==1 && $num_rows == $cur_qty  && $count_comp_order==0 ){ //when only one record with one quantity found of an order id this is completed
+             $count_comp_order++;
+             $rack_counter++;
+             $update_notify_status = db_update('sells_records_items')
+            ->fields(array(
+            'order_notify' => 1,
+            'printed' =>1,
+            'procurestatus' =>1,                        
+            
+            ))
+            ->condition('sales_record_number',$cur_sales_rec_no,'=')
+            ->condition('custom_label',$custom_label,'=')
+            ->execute();
+           
+            $output="Order no:".$cur_sales_rec_no.":is ready to ship";
+            $op_mess_scan=2;
+            
+             $rack_old=get_rack_by_order_id($cur_sales_rec_no);
+            if($rack_old!="0" && ($qty_loop==1 || $qty_loop== $i)){ $output .= ":remove it from rack no =>".$rack_old;
+            }
+            else{ $output .= ":No rack assigned to it";}
+ 
+            rack_full_check($cur_sales_rec_no);
+            if($cur_sell_rec_id != $awb_sell_rec_id){//transfers the identity of scanned isbn to new isbn in case new
+         
+             revert_original_isbn($awb_sell_rec_id,$procure_orig_status);
+            }
+           
+             
+            }
+          
+            else if($print_counter==$num_rows && $count_comp_order2==0)  {//check if any order for the isbn is having all printed 1
+            $count_comp_order2++;
+            $rack_counter++;
+            $update_notify_status = db_update('sells_records_items')
+            ->fields(array(
+            'order_notify' => 1,
+           ))
+            ->condition('sales_record_number',$cur_sales_rec_no,'=')
+            ->condition('custom_label',$custom_label,'=')
+            ->execute();
+            $output="Order no:".$cur_sales_rec_no.":is ready to ship";
+            $op_mess_scan=2;
+            $rack_old=get_rack_by_order_id($cur_sales_rec_no);
+            if($rack_old!="0" && ($qty_loop==1 || $qty_loop== $i)){ $output .= ":remove it from rack no =>".$rack_old;
+            }
+            else{ $output .= ":No rack assigned to it"; }
+ 
+            rack_full_check($notified_sales_rec_no);
+              if($cur_sell_rec_id != $awb_sell_rec_id){
+            revert_original_isbn($awb_sell_rec_id,$procure_orig_status);
+            }
+            }//end of else if
+            else{ //revert to original isbn and keep it in rack
+            if($comp_status==$num_rows_o && $op_mess_scan!=2 && $op_mess_scan!=1 && $count_comp_order == 0 && $count_comp_order2==0 && $count_comp_order3==0 && strpos($loop_output,'No rack')!=true){
+            $rack =update_rack($sales_record_no);
+            $output = "No order completed scan next book keep this in rack:".$rack."</b></span>";
+            $op_mess_scan=1;
+            rack_full_check($sales_record_no);
+            }
+           else{   }
+               }//end of else
+            }//end of each order detail loop
+             $loop_output.=$output; 
+              
+         }//end of each order loop
+              
+  }// end of  check remaining orders  else
+ 	}//multiple order logic ends
+    
+	else{//singles order isbn logic
+     	$check_status_scanned = db_select('sells_records_items','sl');
+		$check_status_scanned->fields('sl',array('procurestatus','quantity','sell_rec_id'));
+        $check_status_scanned->condition('sales_record_number',$sales_record_no);
+		$check_status_scanned->condition('custom_label',$custom_label);
+		$result = $check_status_scanned->execute()->fetchAll();
+        foreach($result as $res){
+        $counter_mine = $res->procurestatus+1;
+        if($counter_mine==$res->quantity){
+        $update_printed_status = db_update('sells_records_items')
+        ->fields(array(
+        'printed' => 1,
+        'procurestatus' => $counter_mine				
+        ))
+        ->condition('sell_rec_id',$res->sell_rec_id,'=')
+        ->execute();
+        
+        $update_notify_status = db_update('sells_records_items')
+        ->fields(array(
+        'order_notify' => 1,
+        
+        ))
+        ->condition('sales_record_number',$sales_record_no,'=')
+        ->execute();
+        $rack_old2=get_rack_by_order_id($sales_record_no);
+
+        if($rack_old2!=0 && ($qty_loop==1 || $qty_loop== $i)){ 
+            $output .= ":remove it from rack no -".$rack_old2;}
+        else{ $output .=" No rack assigned to it yet";}
+        $output="Order no:".$sales_record_no.
+        ":is ready to ship";
+        $op_mess_scan=5;
+         rack_full_check($sales_record_no);
+        }
+        else{
+        $update_new_status = db_update('sells_records_items');
+        $update_new_status->fields(array('procurestatus' => $counter_mine));
+        $update_new_status->condition('sell_rec_id',$awb_sell_rec_id,'=');
+        $update_new_status->execute();
+        //print_r($sales_record_no);die; checkpoint2
+        $rack=update_rack($sales_record_no);
+        $output="<span style= 'color: #0071B3;'><b>No order completed scan next book keep this in rack ".$rack."</b></span>";
+        rack_full_check($sales_record_no);
+        $op_mess_scan=4;
+        }
+        }
+        }//SINGLE ORDER LOGIC ENDS 
+    
+//THIS LOGIC GIVES COMPRISED OUTPUT IF DIFFERENT OUTPUTS COME ON EACH ITERATION
+ 
+###################################################################################
+    $chk_op_messages=explode('|',$op_mess_scan_old);
+    $hasdupes=has_dupes($chk_op_messages);
+    $comprised_output .= $i.")".$output." | ";
+    if(($op_mess_scan==2 || $op_mess_scan==3 || $op_mess_scan==5) && $qty_loop==$i && $qty_loop==1){
+        $output_exp=explode(':',$output);
+        rack_full_check($output_exp[1]);
+        if($op_mess_scan==3){
+        echo("ajax:".$output_exp[1].":".$custom_label.":"."sla");
+        }
+        else{ echo("ajax:".$output_exp[1].":".$custom_label.":"."nosla");}
+      }
+    
+    else{
+    if($i==$qty_loop && ($op_mess_scan == 4 || $op_mess_scan==1) ){
+    
+    if($output==''){
+    echo("No Records Found!!");
+    die;
+    }else{
+    echo ("Following outputs were generated:  ".$comprised_output);
+    die;
+    }
+     }
+    }
+   $realcounter=$qty_loop-$i; 
+    }//for loop ends :)
+ }
+ 
+ 
+ //to print invoice of completed order
+ function post_procure_print_details_byisbn($isbn,$order_id,$sla){
+drupal_add_js(drupal_get_path('module','post_procure').'/post_procure.js');
+drupal_add_css(drupal_get_path('module','post_procure').'/post_procure.css');
+    //print_r($sla."sd".$order_id);die;
+    if($sla=="nosla"){
+           	$qry = db_select('sells_records_items','i');
+	$qry->join('sales_records','s','s.sales_record_no = i.sales_record_number');
+	$qry->fields('i',array('sales_record_number','item_number','item_title','custom_label','quantity','courrier_name','awb_no','sale_price','assignedto','sell_rec_id','quantity'));
+	$qry->fields('s',array('sales_record_no','user_id','buyer_full_name','buyer_phone','buyer_email','buyer_address_1','buyer_address_2','buyer_city','buyer_pincode','buyer_country','total_price','transaction_id','record_uploaded_date','check_out_date','shipping_service','order_id','courier_name'));
+    //$qry->condition('i.custom_label',trim($isbn));
+    $qry->condition('i.sales_record_number',trim($order_id));
+	$qry->condition('i.order_notify',1);
+	 
+	$result = $qry->execute()->fetchAll();
+    }
+    else{
+    $qry = db_select('sells_records_items','i');
+	$qry->join('sales_records','s','s.sales_record_no = i.sales_record_number');
+	$qry->fields('i',array('sales_record_number','item_number','item_title','custom_label','quantity','courrier_name','awb_no','sale_price','assignedto','sell_rec_id','quantity'));
+	$qry->fields('s',array('sales_record_no','user_id','buyer_full_name','buyer_phone','buyer_email','buyer_address_1','buyer_address_2','buyer_city','buyer_pincode','buyer_country','total_price','transaction_id','record_uploaded_date','check_out_date','shipping_service','order_id','courier_name'));
+    $qry->condition('i.custom_label',trim($isbn));
+    $qry->condition('i.sales_record_number',trim($order_id));
+	$qry->condition('i.order_notify',1);
+	 
+	$result = $qry->execute()->fetchAll();
+    $notify="Partial order";
+    }
+ 
+    foreach($result as $ordervalue){
+        $desription .= "<span>".($ordervalue->item_title)."</span><br/>";
+        $order_amount = $ordervalue->total_price;
+        $to= $ordervalue->buyer_full_name.'<br/>'.$ordervalue->buyer_address_1.'<br/>'.$ordervalue->buyer_address_2.
+        '<br/>'.$ordervalue->buyer_city.'<br/> PIN : '.$ordervalue->buyer_pincode.'<br/>'.'Phone no : '.$ordervalue->buyer_phone;
+	 
+        $from="ORBYMART MARKETING PVT LTD<br/>21/A-4697/3,<br/>
+        FIRST FLOOR NEPAL CAREER BUILDING,<br/>ANSARI ROAD DARYA GANJ,<br/>NEW DELHI -110002";
+    }
+    	//get courier name and awb
+        $fed = sales_chk_pin_availablity(trim($ordervalue->buyer_pincode),'fed');
+       $logo= '<img alt="logo" width="140" height="79" src="'.base_path().drupal_get_path('module','post_procure').'/eBay-India.jpg">';
+ 
+		if($fed) {
+			$awb = sales_get_awb_number('Fedex');
+			$src_name = 'Fedex';
+			if(!$awb) {
+				$pin_error = 1;
+				$pin_error_msg = 'AWB not available for Fedex';
+			}
+		}else {
+			$dtdc = sales_chk_pin_availablity(trim($ordervalue->buyer_pincode),'dtdc');
+			if($dtdc) {
+				$awb = sales_get_awb_number('DTDC');
+				$src_name = 'DTDC';
+				if(!$awb) {
+					$pin_error = 1;
+					$pin_error_msg = 'AWB not available for DTDC';
+				}
+			}else {
+				$ara = sales_chk_pin_availablity(trim($ordervalue->buyer_pincode),'ara');
+				if($ara) {
+					$awb = sales_get_awb_number('Aramex');
+					$src_name = 'Aramex';
+					if(!$awb) {
+						$pin_error = 1;
+						$pin_error_msg = 'AWB not available for Aramex';
+					}				
+				}else {
+					$pin_error = 1;
+					$pin_error_msg = 'AWB not available for Aramex / DTDC / Fedex';				
+				}
+			}
+		}
+    //////////////////////////////////////////////
+    	if($pin_error == 0) {
+    	   
+           // set awb status
+  $update_awb_status = db_update('sales_awb_details')
+  ->fields(array(
+  'used' => 1,
+  'sales_record_no' => $order_id,
+  ))
+  ->condition('name','%'.$src_name.'%','LIKE')
+  ->condition('awb',$awb)
+  ->execute();
+  
+  	$courier_name_awb_bar = '<iframe width="450" height="500" src="https://mobileorders.ebay.in/Gen2.php?couriername='.$src_name.'&awb='.$awb.'&to='.$to.'&from=ORBYMART MARKETING PVT LTD<br/>21/A-4697/3,<br/>FIRST FLOOR NEPAL CAREER BUILDING,<br/>ANSARI ROAD DARYA GANJ,<br/>NEW DELHI -110002.&oid='.$order_id.'&courier='.$src_name.'" frameborder="0" onload="document.getElementById(\'macro\').style.display=\'none\';"></iframe>';
+$my_sticker=explode($courier_name_awb_bar,'</table>');
+$new_stic='<p align=center><b>'.$src_name.'<b><br><img src="http://www.barcodesinc.com/generator/image.php?code='.$awb.'&style=197&type=C128B&width=200&height=75&xres=1&font=3"></img>';
+// print_r($new_stic);die;
+ //$courier_name_awb_bar = '<div src="https://mobileorders.ebay.in/Gen2.php?couriername='.$src_name.'&awb='.$awb.'&courier='.$src_name.'" frameborder="0" onload="document.getElementById(\'macro\').style.display=\'none\';"></div>';
+ 
+    	}
+        else{
+        $courier_name_awb_bar = $pin_error_msg;
+		 
+        }
+    //border:1px solid red;
+    
+    $inv_style="<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js'></script> <script> 
+  $(function(){
+     
+
+                        var originalFontSize = parseInt($('.invtopleft3').css('fontSize'));
+                        var sectionheight = $('.invtopleft3').height();
+                        
+                        /*$('.invtopleft3 span').each(function(){
+                            var spanheight = $(this).height();
+                            alert(spanheight);
+                            var newFontSize = (sectionheight/spanheight) * originalFontSize;
+                            $(this).css({'font-size' : newFontSize, 'line-height' : newFontSize/1.2 + 'px'});
+                        });*/
+                        
+                        var spanCount = $('.invtopleft3 span').length;
+                        if(spanCount==1){
+                             $('.invtopleft3').css({'font-size' : 14 + 'px'});
+                            
+                        }
+                                  else{
+                                     var newFontSize = originalFontSize / spanCount;
+                       
+                       
+                       
+                       $('.invtopleft3').css({'font-size' : newFontSize + 'px'});
+                                  }
+                      
+                       
+                       
+                          });                     
+              </script>
+    <style>
+    .invmaindiv{
+    width:400px;
+height:400px;
+border:1px solid  #000000;
+float:left;
+padding:10px;
+}
+.invtop1{
+width:100%;
+height:50px;
+ 
+}
+.invtopleft1{
+width:45%;
+height:45px;
+float:left;
+
+    
+}
+.invtopright1 {
+width: 45%;
+height: 45px;
+float: right;
+margin-top: -13px;
+margin-left: -40px;
+margin-right: 20px;
+ 
+} 
+
+.invtop2{
+width: 102%;
+height: 156px;
+border-bottom:1px solid #000000;
+}
+.invtopleft2{
+width:45%;
+height:148px;
+float:left;
+ 
+    
+}
+.invtopright2 {
+width: 45%;
+height: 83px;
+float: right;
+margin-top: 65px;
+} 
+
+.invtop3{
+width:100%;
+height:70px;
+border-bottom:1px solid #000000;
+
+}
+.invtopleft3{
+width:45%;
+height:64px;
+float:left;
+font-size: 20px;
+ 
+    
+}
+.invtopright3 {
+width:45%;
+height:64px;
+float:right;
+ 
+
+}
+
+.invtop4{
+width:100%;
+height:111px;
+border-bottom:1px solid #000000;
+font-size: 11;
+font-style: italic;
+font-weight: bold;
+margin-top: 7px;
+}
+</style>
+
+";
+$inv_style.='<div class="invmaindiv">
+<div class="invtop1"> 
+
+<div class="invtopleft1"> Order No: '.$order_id.'(.'.$notify.')'.' </div>
+<div class="invtopright1"> '.$new_stic.'</div>
+
+</div>
+<div class="invtop2"> 
+
+<div class="invtopleft2"> TO :'.$to.'</div>
+<div class="invtopright2">'. $logo.' </div>
+
+</div>
+
+<div class="invtop3"> 
+
+<div class="invtopleft3">Description:'.$desription.'</div>
+<div class="invtopright3"> Order Amount:'.$order_amount.' </div>
+
+</div>
+
+<div class="invtop4">From:<br/>'.$from.'</div>
+
+</div>';
+
+    
+    echo $inv_style;
+ }
+ 
+ //to download filled rack
+ function post_procure_download_rack(){
+    $header = array('Rack_Number','Order_Id');
+    $get_rack=db_select('rack_update','raone');
+    $get_rack->fields('raone');
+    $rack_all=$get_rack->execute()->fetchAll();
+    foreach($rack_all as $result){
+        if($result->order_id == 0){
+            $rack_st="Empty";
+        }
+        else{
+            $rack_st=$result->order_id;;
+        }
+    $row = array();
+    $row[]=$result->rack_name;
+    $row[]=$rack_st;
+    $xls_content_row .= implode("\t", array_values($row)) . "\r\n";
+    }
+    $xls_content_header = implode("\t", array_values($header));
+	$xls_content = $xls_content_header."\n".$xls_content_row;
+	$filename = 'Rack_Status'.date("d_m_Y"); 
+	header("Content-type: text/plain; charset=UTF-8");
+	header("Content-Disposition: attachment; filename=$filename");
+	header("Content-Type: application/vnd.ms-excel"); 
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	print $xls_content;
+	exit();   
+	return TRUE;
+   }
+ //to find if there are duplicates in an array
+function has_dupes($array){
+$dupe_array = array();
+foreach($array as $val){
+if(++$dupe_array[$val] > 1){
+return true;
+}
+}
+return false;
+}
+// to update rack with new order id
+    function update_rack($order_id){
+       // print_r($order_id);die;
+    $get_rack_name=db_select('rack_update','ra1');
+    $get_rack_name->condition('order_id',$order_id);
+    $get_rack_name->fields('ra1',array('rack_name'));
+    $rack_name = $get_rack_name->execute()->fetchField();
+    if(!empty($rack_name)){
+        return $rack_name;
+    }
+    else{
+    $get_new_rack_name=db_select('rack_update','ra2');
+    $get_new_rack_name->condition('order_id',0);
+    $get_new_rack_name->fields('ra2',array('rack_name'));
+    $get_new_rack_name->range(0,1);
+    $rack_new_name = $get_new_rack_name->execute()->fetchField();
+   // print_r($rack_new_name);die;
+    $update_order_to_rack=db_update('rack_update');
+    $update_order_to_rack->fields(array('order_id'=>$order_id));
+    $update_order_to_rack->condition('rack_name',$rack_new_name);
+    $update_order_to_rack->execute();
+    //print_r('dd');die;
+    return $rack_new_name;
+     }
+   }
+   // to check if a rack is emptied i.e.e the order id it was containing has been completed shipped
+   function rack_full_check($order_id){
+    //print_r($order_id);die;
+    $get_number_notify=db_select('sells_records_items','sch');
+    $get_number_notify->condition('sales_record_number',$order_id);
+    $get_number_notify->fields('sch',array('order_notify'));
+    $get_number  = $get_number_notify->execute()->fetchAll();
+    $num_rows_notify = $get_number_notify->countQuery()->execute()->fetchField();
+    $not_counter=0;
+    foreach($get_number as $res){
+            $notify_stat=$res->order_notify;
+            if($notify_stat==1){
+            $not_counter++; 
+              }
+          }
+          
+    if($not_counter==$num_rows_notify){
+    $flush_rack=db_update('rack_update');
+    $flush_rack->condition('order_id',$order_id);
+    $flush_rack->fields(array('order_id'=>0));
+    $flush_rack->execute();
+    return true;
+    }
+    else{
+    return false;
+    }
+   }
+   //get rack name by order id
+   function get_rack_by_order_id($order_id){
+    $get_rack_name=db_select('rack_update','ra1');
+    $get_rack_name->condition('order_id',$order_id);
+    $get_rack_name->fields('ra1',array('rack_name'));
+    $rack_name = $get_rack_name->execute()->fetchField();
+    return $rack_name;
+    
+    
+   }
+   //under construction
+   function post_procure_operations_rack(){
+     $header = array('rack_name'=>'Rack', 'order_id'=>'Order Id');
+    $get_all_rack=db_select('sells_records_items','sch');
+    $get_all_rack->condition('sales_record_number',$order_id);
+    $get_all_rack->fields('sch',array('order_notify'));
+    $full_rack  = $get_all_rack->execute()->fetchAll();
+    foreach($full_rack as $result_r){
+        
+    }
+   }
+   //download completed orders
+   function post_procure_complete_orders(){
+    $header = array('Order_Id','Item_Number','Title','Isbn','Sale_Price');
+    $get_all_sells=db_select("sells_records_items","sel");
+    $get_all_sells->fields("sel",array("sales_record_number"));
+    $all_order_id=$get_all_sells->execute()->fetchAll();
+    foreach($all_order_id as $each_order){
+    $sale_rec_no_now=$each_order->sales_record_number;
+    $get_each_order_item=db_select("sells_records_items","sel2");
+    $get_each_order_item->fields("sel2",array("order_notify"));
+    $get_each_order_item->condition("sales_record_number",$sale_rec_no_now);
+    $num_rows = $get_each_order_item->countQuery()->execute()->fetchField();
+    $each_order_detail=$get_each_order_item->execute()->fetchAll();
+    $note_count=0;
+    foreach($each_order_detail as $eac){
+    $not_eac=$eac->order_notify;
+    if($not_eac==1){
+       $note_count++;
+       }
+    }//for each order id's each detail end
+    if($note_count==$num_rows){
+    $completed_order_id .= $sale_rec_no_now."|";
+    }
+    }//for each order id
+    $order_array=explode("|",$completed_order_id);
+    $order_array_c =arrayUniquepost($order_array);
+    foreach($order_array_c as $comp_order){
+    $get_each_complete_order_item=db_select("sells_records_items","sel3");
+    $get_each_complete_order_item->fields("sel3",array("sales_record_number","item_number","item_title","custom_label","sale_price"));
+    $get_each_complete_order_item->condition("sales_record_number",$comp_order);
+    $each_order_comp_detail=$get_each_complete_order_item->execute()->fetchAll();
+    foreach($each_order_comp_detail as $finalfields){
+    $row = array();
+    $row[]=$finalfields->sales_record_number;
+    $row[]=$finalfields->item_number;
+    $row[]=str_replace("\r",'',str_replace("\n",'',$finalfields->item_title));
+    $row[]=$finalfields->custom_label;
+    $row[]=$finalfields->sale_price;
+    $xls_content_row .= implode("\t", array_values($row)) . "\r\n";   
+    }//end of display of each row
+    }//end of display of all row row
+    $xls_content_header = implode("\t", array_values($header));
+	$xls_content = $xls_content_header."\n".$xls_content_row;
+	$filename = 'Completed_Orders'.date("d_m_Y"); 
+	header("Content-type: text/plain; charset=UTF-8");
+	header("Content-Disposition: attachment; filename=$filename");
+	header("Content-Type: application/vnd.ms-excel"); 
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	print $xls_content;
+	exit();   
+	return TRUE;
+    
+   }
+ //clears notify status of isbn which was scanned but other isbn comes in output as it is completing an order
+   function revert_original_isbn($sell_rec_id,$procurestatus){
+    if($procurestatus==0){
+        $procur_stat=0;
+    }
+    else{
+        $procur_stat=$procurestatus-1;
+
+    }
+    
+    $update_orig_isbn=db_update('sells_records_items');
+    $update_orig_isbn->fields(array('printed'=>0,'procurestatus'=>$procur_stat,'order_notify'=>0));
+    $update_orig_isbn->condition('sell_rec_id',$sell_rec_id);
+    //$update_orig_isbn->condition('procurestatus',0,'!=');
+    $update_orig_isbn->execute();
+    
+   }
+      function arrayUniquepost($array) {
+     
+    $input = array_map("unserialize", array_unique(array_map("serialize", $array)));
+    foreach ( $input as $key => $value ) {
+    is_array($value) and $input[$key] = arrayUnique($value);
+     }
+    return $input;
+     }
+     /**
+	* Check pincode availablity
+	*/
+function sales_chk_pin_availablity($pincode,$case) {
+	switch($case) {
+		case 'fed':	
+			$fed_qry = db_select('sales_fedex_pincode_list','f')
+				->fields('f',array('pincode'))
+				->condition('pincode',$pincode);
+			$fed_result = $fed_qry->execute()->fetchField();
+			break;
+		case 'dtdc':	
+			$dtdc_qry = db_select('sales_dtdc_pincode_list','d')
+				->fields('d',array('pincode'))
+				->condition('pincode',$pincode);
+			$fed_result = $dtdc_qry->execute()->fetchField();
+		break;
+		case 'ara':	
+			$ara_qry = db_select('sales_aramex_pincode_list','a')
+				->fields('a',array('pincode'))
+				->condition('pincode',$pincode);
+			$fed_result = $ara_qry->execute()->fetchField();
+		break;
+	}
+	return $fed_result;					
+}
+
+/**
+	* Get AWB number 
+	*/
+function sales_get_awb_number($src_name) {
+	$fed_qry = db_select('sales_awb_details','a')
+		->fields('a',array('awb'))
+		->condition('name','%'.$src_name.'%','LIKE')
+		->condition('used',0)
+		->range(0,1);
+	$awb = $fed_qry->execute()->fetchField();
+	return $awb;					
+}
+	
+?>

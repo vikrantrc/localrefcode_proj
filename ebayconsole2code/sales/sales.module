@@ -1,0 +1,1388 @@
+<?php    
+ 
+ 
+require_once ('sales_page.inc');
+    
+/**
+ * Implements hook_permissions().
+ */
+function sales_permission() {
+  return array(
+    'sales catagory managament' => array(
+      'title' => t('Sales catagory  managament option'),     
+    ),
+  );
+}
+
+
+/**
+ * Implements hook_menu().
+ */
+function sales_menu() {
+  $items['sales/upload'] = array(
+    'title' => 'Import Sales File',
+    'description' => 'Sales File Upload',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sales_file_upload'),
+    'access arguments' => array('sales catagory managament'),   
+  );
+ $items['sales/order/assignment'] = array(
+    'title' => 'Order Assignment',
+    'description' => 'Order Assignment',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sales_order_assignment'),
+    'access arguments' => array('sales catagory managament'),   
+  );
+  
+  $items['sales/order/assign'] = array(
+    'title' => 'Check auto assign orders',
+    'description' => 'Executive can check and assign auto assigned orders as per convenience.',
+    'page callback' => 'sales_auto_assign_order_reassignment',
+    'page arguments' => array('sales_auto_assign_order_reassignment'),
+    'access arguments' => array('sales catagory managament'), 
+    'file' => 'sales_page.inc' ,
+  );
+  
+  $items['sales/order/reassign/ajax'] = array(
+    'title' => 'ajax reassign',
+    'description' => 'Executive can check and assign auto assigned orders as per convenience.',
+    'page callback' => 'sales_isbn_reassing',
+    'access arguments' => array('sales catagory managament'), 
+    'file' => 'sales_page.inc' ,
+  );
+  
+  $items['sales/order/get_assignment/%'] = array(
+    'title' => 'Order Assignment', 
+    'page callback' => 'sales_show_table_structure_assign_orders',
+    'access arguments' => array('sales catagory managament'), 
+    'file' => 'sales_page.inc' ,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(3),
+  );
+  $items['sales/order/get_picklist']=array(
+    'title'=>'Generate Pickuplist',
+    'description' => 'generate pickuplist',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sales_generate_pickup_list'),  
+    'access arguments'=>array('sales catagory management'),
+    );
+  $items['sales/invoice/next'] = array(
+  'title' => 'Purchase Order', 
+  'page callback' => 'sales_invoice_listing',
+  'access arguments' => array('sales catagory managament'), 
+  'file' => 'sales_page.inc' ,
+  'type' => MENU_CALLBACK,
+  );
+	$items['sales/order/invoice/download/%/%'] = array(
+  'title' => 'Invoicing', 
+  'page callback' => 'sales_invoice_download',
+  'access arguments' => array('sales catagory managament'), 
+  'file' => 'sales_page.inc' ,
+  'type' => MENU_CALLBACK,
+	'page arguments' => array(4,5),
+ );
+ $items['sales/order/invoice/search'] = array(
+	'title' => 'Search purchase order', 
+	'page callback' => 'drupal_get_form',
+	'page arguments' => array('sales_invoice_search'),
+	'access arguments' => array('sales catagory managament'), 
+	//'type' => MENU_CALLBACK, 
+ );
+  $items['sales/invoice/search/result/%'] = array(
+  'title' => 'Procure and Re assign', 
+  'page callback' => 'drupal_get_form',
+  'page arguments' => array('sales_invoice_search_results'),
+  'access arguments' => array('sales catagory managament'), 
+  'file' => 'sales_page.inc' ,
+  //'type' => MENU_CALLBACK,
+  );
+  $items['sales/next/to_be_procured'] = array(
+  'title' => 'Search purchase order',
+  'page callback' => 'sales_to_be_procured',
+  'access arguments' => array('sales catagory managament'), 
+  'file' => 'sales_page.inc' ,
+  'type' => MENU_CALLBACK,
+);
+	 $items['sales/get/bar_status/']=array(
+  'title' => 'send_values_bar',
+  'page callback' => 'send_values_bar_return',
+  'access arguments' => array('sales catagory managament'), 
+  'type' => MENU_CALLBACK,
+   );
+	 
+	 $items['sales/progress']=array(
+  'title' => 'send_values_bar',
+  'page callback' => 'sales_progress',
+  'access arguments' => array('sales catagory managament'), 
+  'type' => MENU_CALLBACK,
+   );
+  $items['sales/current/status/download'] = array(
+  'page callback' => 'sales_current_assigned_download',
+  'access arguments' => array('sales catagory managament'), 
+  'file' => 'sales_page.inc' ,
+  'type' => MENU_CALLBACK,
+ );
+ 
+    $items['sales/search/orderid/status'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sales_orderid_search_status'),
+    'access arguments' => array('sales catagory managament'), 
+ 
+   );
+    $items['sales/search/orderid/result/%'] = array(
+    'title' => 'search_order', 
+    'page callback' => 'sales_orderid_search_status_result',
+    'access arguments' => array('sales catagory managament'), 
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(4),
+    );   
+     $items['sales/reassign/market'] = array(
+    'title' => 'search_order', 
+    'page callback' => 'sales_reassign_market',
+    'access arguments' => array('sales catagory managament'), 
+     'type' => MENU_CALLBACK,
+     ); 
+    $items['sales/activate/deactivate/batch'] = array(
+    'title' => 'Batch Action', 
+    'page callback' => 'sales_activate_deactivate_list',
+    'access arguments' => array('sales catagory managament'), 
+    'type' => MENU_CALLBACK,
+    
+    ); 
+     $items['sales/insert/batchid'] = array(
+    'title' => 'batch_id', 
+    'page callback' => 'sales_generate_batch_id',
+    'access arguments' => array('sales catagory managament'), 
+    'type' => MENU_CALLBACK,
+    
+    ); 
+    $items['sales/activate/batch/%'] = array(
+    'title' => 'Batch Action', 
+    'page callback' => 'sales_activate_batch',
+    'access arguments' => array('sales catagory managament'), 
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(3),
+    );
+    $items['sales/deactivate/batch/%'] = array(
+    'title' => 'Batch Action', 
+    'page callback' => 'sales_deactivate_batch',
+    'access arguments' => array('sales catagory managament'), 
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(3),
+    );
+      $items['sales/dispose/batch/%'] = array(
+    'title' => 'Dispose', 
+    'page callback' => 'sales_dispose_batch',
+    'access arguments' => array('sales catagory managament'), 
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(3),
+    );
+ 
+  return $items;
+ }
+ 
+/**
+ * 
+ */
+function sales_init(){
+    //drupal_add_js(drupal_get_path('module','sales').'/jquery.ddslick.js') ;   
+    drupal_add_js(drupal_get_path('module','sales').'/sales.js'); 
+    drupal_add_js(drupal_get_path('module','sales').'/progress.js');
+    drupal_add_library('system', 'ui.progressbar');
+    
+}
+
+function send_values_bar_return(){
+  $i=1;
+  $j=1;
+  for($i=1;$i<=100;$i++)
+  { 
+    lock_wait($name, $delay = 1);
+    $j+=1;
+    
+  }
+ return $j;
+}
+/**
+ * Implements callback of sales/upload
+ */
+function sales_file_upload(){
+  $file_csv_ref = drupal_get_path('module', 'sales') . "/sales_template.csv";
+  $form['sales_report'] = array(
+    '#type' => 'file',
+    '#title' => t('Select Sales file'),
+    '#size' => 22,
+    '#description' => '<br/>#Note : xls and xlsx are the only two valid extensions',
+  );
+  $form['read_sales_report'] = array(
+    '#type' => 'submit', 
+    '#value' => t('Upload'),
+  );
+  $form['markup3'] = array(
+    '#type' => 'markup', 
+    '#prefix' => '<div id="nextmain">',
+    '#suffix' => '</div>',
+    '#markup' => l("NEXT ","sales/order/assignment"),
+  );
+  return $form;
+}
+ 
+function sales_invoice_search(){
+
+  $header=array(
+  array('data'=>'Source' , 'field' =>'field_data_field_distributor_name'),
+  array('data'=>'PO ID.' ,'field' =>'invoice_no'),
+   array('data'=>'Action' ,'field' =>'search'),
+ );
+  $query_inv_display = db_select('ebay_books_order_assigned','oa');
+  $query_inv_display->fields('oa',array('invoice_no')); 
+  $query_inv_display->join('field_data_field_distributor_name' ,'dn','dn.entity_id = oa.distrbutor_id');
+  $query_inv_display->fields('dn',array('field_distributor_name_value'));
+  $query_inv_display->condition('oa.status','to_be_procured');
+  //$query_inv_display = $query_inv_display->extend('TableSort')->extend('PagerDefault')->limit(40);
+ //	$query_inv_display = $query_inv_display->extend('PagerDefault')->limit(10);
+  $results = $query_inv_display->execute()->fetchAll();
+  //print_r($results);die;
+  foreach($results as $val){
+    $search='<a href="/ebayconsole2/sales/invoice/search/result/'.$val->invoice_no.'">Procure/Reassign</a>';
+    $row = array();
+    $row['field_distributor_name_value'] = $val->field_distributor_name_value;
+    $row['invoice_no'] = $val->invoice_no;
+    $row['search']=$search;
+    $rows[$val->invoice_no] = $row;
+     
+
+	}
+  //print_r($row);die;
+   $data_table = theme('table', array('header' => $header, 'rows' => $rows));//
+  /*$form['search_invoice_number'] = array(
+  '#type' => 'fieldset',
+  '#title' => t(''),
+  '#weight' => 0,
+  '#collapsible' => TRUE,
+  '#collapsed' => FALSE,
+  '#prefix' => '<div class="sales_search_input_wrap">',
+  '#suffix' => '</div>',      
+  );*/
+  //These PO ID are still in freeze status procure/reassign them
+  
+  
+  //	$form['search_invoice_number']['invoice_no'] = array(
+  //		'#type' => 'textfield', 
+  //		'#title' => 'Enter Purchase Order Number',
+  //		'#required'=> TRUE,
+  //	);
+  //	$form['search_invoice_number']['invoice_no_submit'] = array(
+  //		'#type' => 'submit', 
+  //		'#value' => t('Search'),	
+  //	);	
+  
+  $form['markup2'] = array (
+		'#type' => 'markup',
+    '#prefix' => '<br>',
+  	'#markup' => t('Below PO ID are still in freezed status procure/reassign them'),
+  	); 	
+    
+     $form['markup2'] = array(
+    '#type' => 'markup', 
+    '#prefix' => '<div id="nextmain2">',
+    '#suffix' => '</div>',
+    '#markup' => l('BACK','sales/invoice/next'),	
+     
+  );
+  $form['procure_all'] = array (
+  '#type' => 'submit',
+  '#value' => t('Procure All'),
+  '#prefix' => '<div id="pro_all_rt">',
+  '#suffix' => '</div>',
+  );
+ 
+  $form['markup'] = array (
+		'#type' => 'markup',
+		'#markup' => $data_table,
+  	); 					 
+
+ 
+  return $form;
+}
+ //Call back of search invoice
+function sales_invoice_search_submit($form,&$form_state){
+   
+    $update_procured = db_update('ebay_books_order_assigned');     
+    $update_procured->fields(array('status' =>'procured'));
+    $update_procured ->condition('status','to_be_procured_waiting','!=');
+    $update_procured->condition('status','procured_waiting','!=');
+    $update_procured->condition('status','assigned_waiting','!=');
+    $update_procured->condition('status','freezed_waiting','!=');
+    $update_procured->execute(); 
+    drupal_set_message('All Books In Procured Status Now');
+}
+
+ function sales_order_assignment(){
+   
+	drupal_add_js(drupal_get_path('module','sales').'/sales.js'); 
+	drupal_add_css(drupal_get_path('module', 'sales')."/sales.css");
+  $not_assigned = sales_get_no_unassigned_items();
+  
+  $form['markup'] = array(
+	 '#type' => 'markup', 
+	 '#markup' => '<h2>'.$not_assigned.' items still to be assigned</h2><p><h2>Please click the below button to process the order</h2>',	
+     
+  );
+    
+  $form['order_assign_hidden'] = array(
+	 '#type' => 'hidden', 
+	 '#value' => 10, 
+     	
+  );
+  
+	
+	/*$form['order_fgfassign'] = array(
+	 '#markup' => bartik_progress_bar(array('percent'=>30)),
+  );*/
+  $_SESSION['order_ass'] = 1;
+  $form['order_assign'] = array(
+	 '#type' => 'submit', 
+	 '#value' => t('Order Porcessing'),	
+	 '#ajax' => array(
+		'callback' => 'sales_order_process_submit_action',
+    'progress' => array('type' => 'bar','url' => base_path().'sales/progress','message' => t('Please wait...')),
+		//'progress' => array('type' => 'bar','url' =>  base_path().'misc/progress.js','interval' => '15','message' => t('Please wait...')),
+		'wrapper' =>  'sales_order_process_result',
+  ),   
+  );
+	
+	$form['aresult'] = array(
+		'#prefix' => '<div id="sales_order_process_result">',
+		'#suffix' => '</div>',
+	//	'#markup' => t('Loading please wait.....'),
+  );
+    $form['markup2'] = array(
+    '#type' => 'markup', 
+    '#prefix' => '<div id="nextmain">',
+    '#suffix' => '</div>',
+    '#markup' => l('NEXT','sales/insert/batchid'),	
+     
+  );
+  return $form;
+}
+
+function sales_progress() {
+$val = $_SESSION['order_ass'] * 25;
+$_SESSION['order_ass']++;
+if($val > 100) {
+	$_SESSION['order_ass'] = 1;
+	echo '{"percentage":"'.$val.'","message":"Processing more..."}'; 
+}
+else {
+	echo '{"percentage":"'.$val.'"}';
+}
+ 
+	//echo setProgress('50','df');
+}
+ 
+
+function sales_order_process_submit_action() {
+	//return bartik_progress_bar(array('percent'=>30));
+	$query = db_select('sells_records_items','i');
+	  $query->condition('status','queued');
+    $query->fields('i',array('sell_rec_id','sales_record_number','custom_label','quantity','sale_price'));
+    $results = $query->execute()->fetchAll();
+    $count = 0;
+    
+//    $query=db_select('ebay_books_order_assigned','e');
+//                 $query->fields('e',array('isbn'));
+//                 $re=$query->execute()->fetchAll();
+                 
+          //   foreach($results as $isb){
+//            $sla_upload=calculate_sla($isb->custom_label);
+//            if($sla_upload==''){$sla_upload=5;}
+//            $update_sla = db_update('ebay_books_order_assigned');     
+//            $update_sla->condition('isbn',$isb->custom_label);
+//            $update_sla->fields(array('temp_sla' =>$sla_upload));
+//            $update_sla->execute(); 
+//                
+//             }
+    
+    //Table name where we will keep sales order assigned an freezed
+    $assigned_to_table = 'ebay_books_order_assigned';
+  // echo count($results); exit;
+  
+ 
+    foreach($results as $result){
+        $orbycheck=0;
+	//echo bartik_progress_bar(array('percent'=>30));
+    $isbn = (float)$result->custom_label;
+    $calculated_sla=calculate_sla_process_sales($isbn);    
+     if(empty($calculated_sla) || $calculated_sla=='' || $calculated_sla == NULL ){
+    $calculated_sla=5;
+   }
+   $cur_time= mktime(9, 00,00, date('m',time()),date('d',time()), date('Y',time()));
+    $sell_rec_id = $result->sell_rec_id;
+    $order_id = $result->sales_record_number;
+    $sale_qty = $result->quantity;
+    $sale_price = $result->sale_price;
+   // echo "***". $isbn; 
+    //Quantity condition for assignment
+    $qry_co = db_select('stock','s');
+    $qry_co->fields('s',array('source'));
+    $qry_co->condition('s.isbn13',$isbn);
+    $res_co = $qry_co->execute()->fetchAll();
+    //check wheteher source is orbymat or not
+    foreach($res_co as $chksource){
+    if($chksource->source==2547){
+    $orbycheck=1;
+    }
+   
+
+    }
+      // $sla_calc= calculate_sla($isbn);
+    $qry = db_select('stock','s');
+    $qry->join('field_data_field_source_rating','rating','s.source=rating.entity_id');
+    $qry->fields('s',array('qty','source','isbn13'));
+    $qry->fields('rating',array('field_source_rating_value'));
+    $qry->condition('s.isbn13',$isbn);
+    //Apply quantity condition for orby and other sources
+    //   $qry->condition('s.qty',0,'!=');
+    $qry->condition('s.qty',10,'>=');
+    $qry->orderBy('rating.field_source_rating_value', 'DESC');
+    $qry->orderBy('s.qty', 'DESC');
+    $res1 = $qry->countQuery()->execute()->fetchField();
+    $res = $qry->execute()->fetchAll();
+    //dpq($qry);
+      // print_r($res);die;
+        $jj[]=$res;
+       
+      
+     
+      
+        if(empty($res)){
+       
+            $q = db_update('sells_records_items')
+                  ->fields(array(
+                    'assignedto' => 0,
+                    'status' => 'assigned',
+                  ))
+                  ->condition('sell_rec_id',$sell_rec_id)//
+                  ->execute();
+            
+            //Save data in temp. sales order table     
+            $input_array = array(
+                              'order_id' => $order_id,
+                              'distrbutor_id' => 0, //Assigned to Market
+                              'isbn' => $isbn,
+                              'qty' => $sale_qty,
+                              'price' => $sale_price,
+                              'invoice_no' => 0,
+                              'dtime' => $cur_time,
+                              'status' => 'assigned',
+                              'batch'=>0,
+                              'temp_sla'=>$calculated_sla
+                            );
+            
+            ebay_books_save_records($assigned_to_table,$input_array);
+            $count++;
+        }
+        
+        else{
+                       
+         // dpr($res); die;
+      
+          //  if($res1 == 1){
+            
+             
+               //only one source available
+               if($res[0]->qty >=  $sale_qty){
+                //book in stock
+                $q = db_update('sells_records_items')
+                      ->fields(array(
+                        'assignedto' => $res[0]->source,
+                        'status' => 'assigned',
+                      ))
+                      ->condition('sell_rec_id',$sell_rec_id)
+                      ->execute();
+                      
+                //Save data in temp. sales order table     
+                $input_array = array(
+                                  'order_id' => $order_id,
+                                  'distrbutor_id' => $res[0]->source,
+                                  'isbn' => $isbn,
+                                  'qty' => $sale_qty,
+                                  'price' => $sale_price,
+					    	      'invoice_no' => 0,
+							      'dtime' => $cur_time,
+                                  'status' => 'assigned',
+                                   'temp_sla'=>$calculated_sla
+                                );
+                
+                ebay_books_save_records($assigned_to_table,$input_array);
+                
+               }
+               
+               
+               
+               else{
+                //out of stock.. from market
+                $q = db_update('sells_records_items')
+                      ->fields(array(
+                        'assignedto' => 0,
+                        'status' => 'assigned',
+                      ))
+                      ->condition('sell_rec_id',$sell_rec_id)
+                      ->execute();
+                
+                //Save data in temp. sales order table     
+                $input_array = array(
+                                'order_id' => $order_id,
+                                'distrbutor_id' => 0,
+                                'isbn' => $isbn,
+                                'qty' => $sale_qty,
+                                'price' => $sale_price,
+                                'invoice_no' => 0,
+                                'dtime' => $cur_time,
+                                'status' => 'assigned',
+                                'temp_sla'=>$calculated_sla
+                                  
+                                );
+                
+                ebay_books_save_records($assigned_to_table,$input_array);
+                
+              }
+  
+            } 
+        }
+				     
+                 
+				return 'Order Assignment is done click NEXT to continue';
+}
+
+//generate pickup_list
+ function sales_generate_pickup_list(){
+ $form['markup']=array(
+ '#type' => 'markup',
+ '#markup' => '<h2>Please click the below button to download Pickup List</h2>',
+ );
+ $form['download_pickuplist']=array(
+  '#type' => 'submit',
+  '#value' => t('Download Pickuplist'),
+  ); 
+ return $form;
+}
+
+function sales_orderid_search_status(){
+    	drupal_add_js(drupal_get_path('module','sales').'/sales.js');
+    $form['poid'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Search Order Status'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+   $form ['poid']['search']=array(
+    '#type' => 'textfield',
+    '#title' => t('Enter Order Id to check Status'),
+    '#attributes' => array('class' => array('search_order_status')),
+    '#required'=> TRUE, 
+  ); 
+    
+ 
+  $form ['markup']=array(
+  '#type' => 'markup',
+  '#prefix'=>'<div id="sales_show_status">',
+  '#value' => t('Search'),
+  '#suffix'=>'</div>',
+  ); 
+ return $form;
+}
+
+ function sales_orderid_search_status_result(){
+   
+    $order_id=arg(4);
+ // print_r($order_id);die;
+    $header = array('Order Id', 'Status');
+    $query=db_select('sales_records','sa');
+    $query->fields('sa',array('order_id','order_status'));
+    
+   $query->condition('order_id',$order_id);
+    $result=$query->execute()->fetchAll();
+     
+    foreach($result as $res){
+    $row = array();
+    $row[]=$res->order_id;
+    $row[]=$res->order_status;
+    $rows[] = $row;
+    }
+   // return theme('table', array('header' => $header, 'rows' => $row));
+    $tabl = theme('table',array('header' => $header,'rows'=>$rows));
+    	if(count($res)>0) {
+		$out = $tabl;
+	}else {
+		$out = 'iksula';
+	}
+	echo $out;
+    
+     
+ }
+/**
+ * Implements form_validate
+ */ 
+function sales_file_upload_validate($form, &$form_state){
+  $file = file_save_upload('sales_report', array('file_validate_extensions' => array('xls xlsx'),));
+  if ($file) {
+    // echo "Upload: " . $_FILES["file"]["name"] . "<br>"; die;
+  if ($file = file_move($file, 'public://')) {
+    $form_state['values']['file'] = $file;
+     
+  }else {
+    form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+  } 
+  
+  require_once 'excel_reader2.php';
+  require_once drupal_get_path('module','ebay_books_admin').'/simple/simplexlsx.class.php';  
+  
+  $file = $form_state['values']['file'];
+  $file->status = FILE_STATUS_PERMANENT;
+  $filepath = drupal_realpath($file->uri);
+  
+  $ext = pathinfo($filepath, PATHINFO_EXTENSION); 
+  $parra_falg = 0;   
+  $count = 0;
+  $src_error = 0;
+  $ins_chk = $ins_records = 0;
+  
+  if($ext == 'xls'){
+    $xlsx_rw = 2;
+    $data = new Spreadsheet_Excel_Reader($filepath);
+    $numrows = count($data->sheets[0]['cells']);
+    $numcols = $data->sheets[0]['numCols'];  
+    if($numcols != 34){        
+     form_set_error('file', t('Uploaded file column count does not matched, can\'t process it.'));
+    }
+    //xls start from zero 0
+    for($row = 2; $row <= $numrows; $row++){
+      for ($col = 1; $col <= $numcols; $col++) {
+       $output[$row][$col] = $data->val($row, $col, $sheet = 0);            
+      }   
+      if($output[$row] > 0 && !empty( $output[$row][1])){       
+        $isbn_val =  $csv_values[14];// Custom label i.ISBN
+        if(stristr($isbn_val, '+')){
+          form_set_error('file', t('Row number '. $cky.' column custom lable ISBN value is invalid.'));
+        }             
+      }       
+    }
+  }else if($ext == 'xlsx'){
+    $xlsx_rw = 1;
+    $data = new SimpleXLSX($filepath);
+    $test =  list($numcols, $numrows) = $data->dimension();
+    $info = $data->rows();
+    if($numcols != 34){        
+      form_set_error('file', t('Uploaded file column count does not matched, can\'t process it.'));
+    }
+    //xlsx start from zero 0
+    for($r = 1; $r < $numrows; $r++){
+      $row = $r;  
+      foreach($info[$r] as $col => $cols){
+        $output[$row][$col+1] = $cols;        
+      }  
+      if($output[$row] > 0 && !empty( $output[$row][1])){       
+        $isbn_val =  $csv_values[14];// Custom label i.ISBN
+        if(stristr($isbn_val, '+')){
+          form_set_error('file', t('Row number '. $cky.' column custom lable ISBN value is invalid.'));
+        }             
+      }
+    }
+  }   
+  }// END of check ifFile ixist
+}
+ 
+ /**
+ * Implements form_submit
+ */
+ function sales_file_upload_submit($form, &$form_state){
+	require_once 'excel_reader2.php';
+	require_once drupal_get_path('module','ebay_books_admin').'/simple/simplexlsx.class.php';  
+
+	$file = $form_state['values']['file'];
+   
+	$file->status = FILE_STATUS_PERMANENT;
+	$filepath = drupal_realpath($file->uri);
+
+//$filenamer=explode($filepath,"SalesHistory ");
+//$filename=$filenamer[1];
+//print_r($filename);die;
+	$ext = pathinfo($filepath, PATHINFO_EXTENSION); 
+	$parra_falg = 0;   
+	$count = 0;
+	$src_error = 0;
+	$ins_chk = $ins_records = 0;
+  if($ext == 'xls'){		
+    $data = new Spreadsheet_Excel_Reader($filepath);
+    $numrows = count($data->sheets[0]['cells']);
+    $numcols = $data->sheets[0]['numCols'];     
+    for($row = 2; $row <= $numrows; $row++) {
+      for($col = 1; $col <= $numcols; $col++) {
+        $output[$row][$col] = $data->val($row, $col, $sheet = 0);
+			}
+		}      
+  }else if($ext == 'xlsx'){
+    $data = new SimpleXLSX($filepath);
+    $test =  list($numcols, $numrows) = $data->dimension();
+    $info = $data->rows();
+    $numrows = $numrows - 1;
+    for($r = 1; $r <=$numrows; $r++){
+      $row = $r;  
+      foreach($info[$r] as $col => $cols){
+        $output[$row][$col+1] = $cols;        
+      }	
+    }    
+  }	
+    $s_count = 0;
+    foreach($output as $cky => $csv_values){
+       //Check to start from row second.
+       if($cky > 0 && !empty($csv_values[1])){      
+        
+        // Will take only 11 column for each row.
+        $sales_order_rec = array(
+                            'sales_record_no' => check_plain($csv_values[1]),
+                            'user_id' => check_plain($csv_values[2]),                               
+                            'buyer_full_name' => check_plain($csv_values[3]),
+                            'buyer_phone' => check_plain($csv_values[4]),
+                            'buyer_email' =>  check_plain($csv_values[5]),
+                            
+                            'buyer_address_1' => check_plain($csv_values[6]),
+                            'buyer_address_2' => check_plain($csv_values[7]),
+                            'buyer_city' => check_plain($csv_values[8]),                               
+                            'buyer_state' => check_plain($csv_values[9]),
+                            'buyer_pincode' => check_plain($csv_values[10]),
+                            'buyer_country' =>  check_plain($csv_values[11]),
+                            
+                            'total_price' => check_plain(floatval(str_replace("Rs.","",$csv_values[20]))),
+                            'shipping_handlings' => check_plain(floatval(str_replace("Rs.","",$csv_values[17]))),//check_plain($csv_values[16]),
+                            'insurance' => check_plain(floatval(str_replace("Rs.","",$csv_values[18]))),                             
+                            'cash_on_delivery_fee' => empty($csv_values[19])  ? "00000.00" : check_plain(trim($csv_values[19])),
+                            'shipped_on_date' => check_plain(intval($csv_values[25])),
+                            'feedback_left' =>  check_plain($csv_values[26]),
+                            
+                            'feedback_received' => check_plain($csv_values[27]),
+                            'notes_to_yourself' => check_plain($csv_values[28]),
+                            'paypal_transaction_id' => check_plain($csv_values[29]),                               
+                            'awb_number' => '',
+                            'cash_on_delivery_option' => check_plain($csv_values[31]),
+                            'transaction_id' =>  check_plain($csv_values[32]),
+                            
+                            'record_uploaded_date' => time(),
+                            'payment_method' => check_plain($csv_values[21]),
+                            
+                            'sale_date' => intval(strtotime($csv_values[22])),                               
+                            'check_out_date' => intval(strtotime($csv_values[23])),
+                            'pay_date' => intval(strtotime($csv_values[24])),                            
+                            'shipping_service' => check_plain($csv_values[30]),
+                            'order_id' => check_plain(intval($csv_values[33])),
+                            'variation_details' => check_plain($csv_values[34]),
+                            'courier_name' => '',                               
+                            'shipping_status' => check_plain(floatval(str_replace("Rs.","",$csv_values[17]))),//check_plain($csv_values[16]),
+                            'order_status'=> 'queued',
+														
+                          );    
+        $sale_rec_id = sales_get_record_by_id(check_plain($csv_values[1]));             
+        //Save sales records
+        if(!$sale_rec_id){
+            $table = 'sales_records';  
+            $res = ebay_books_save_records($table,$sales_order_rec);
+            $s_count++;
+				}              
+				if(!empty($csv_values[12])){
+          if($csv_values[14] !='' && $csv_values[1] >0) { // Custom Label & Sales Record Number
+						//Recheck if same file upload again, so no duplicate records should upload
+						$sell_rec_id =  sales_check_item_id($csv_values[14],$csv_values[1]);
+					}					
+					if($csv_values[14]=='') {
+						$sell_rec_id = 100;  // if Custom Label is empty, no need to save this record
+					}
+           if($sell_rec_id == 0){  
+      			     $sales_record_items = array(
+                  									'sell_rec_id' =>NULL, //Auto increement.
+                  									'sales_record_number' => check_plain($csv_values[1]),    //PK                           
+                  									'item_number' => check_plain($csv_values[12]),
+                  									'item_title' => check_plain($csv_values[13]),
+                  									'custom_label' =>  check_plain($csv_values[14]),
+                  									
+                  									'quantity' => check_plain(intval($csv_values[15])),
+                  									'source' => '',
+                  									'status' => 'queued',                               
+                  									'remarks' => check_plain($csv_values[9]),
+                  									'awb_no' => '',
+                  									'courrier_name' =>'',
+                  									
+                  									'shipping_status' => 0,
+              								    	'sale_price' => check_plain(floatval(str_replace("Rs.","",$csv_values[16]))),//check_plain($csv_values[15]),
+              								    	'ISBN' => 0, 
+                                    'assignedto' => '',
+																		'printed'=> 0,
+																		'procurestatus'=> 0,
+  								                );
+  					//$s_count++;		
+      			$table = 'sells_records_items';                
+      		  $res = ebay_books_save_records($table,$sales_record_items);            
+          }
+        }     
+    }//END of outer if loop.     
+		$sell_rec_id =0;			
+ }//END outer for loop 
+
+   drupal_set_message($s_count . ' Sales records inserted successfully Click NEXT to continue.');
+}
+
+/**
+ * Get Sale records id if present
+ */
+function sales_get_record_by_id($sale_rec_id){
+  $query = db_select('sales_records','s');
+  $query->condition('s.sales_record_no', $sale_rec_id, '=');
+  $query->fields('s',array('sales_record_no'));
+  $sale_resp_id = $query->execute()->fetchField();  
+  return $sale_resp_id;
+} 
+
+/**
+ * Get Sale unique Item id  if present
+ */
+function sales_check_item_id($custom_label,$sales_rec_no){ 
+  $query = db_select('sells_records_items','s');
+  $query->condition('s.custom_label', $custom_label, '=');
+  $query->condition('s.sales_record_number', $sales_rec_no, '=');
+  $query->fields('s',array('sell_rec_id'));
+  $sale_resp_id = $query->execute()->fetchField();  
+  return $sale_resp_id;
+} 
+
+/**
+ * Custom function to read csv file.
+ */
+function readCSV($csvFile){
+ //Check if file  exist or not 
+ if(file_exists($csvFile)){
+	$file_handle = fopen($csvFile, 'r');
+	while (!feof($file_handle) ) {
+		$line_of_text[] = fgetcsv($file_handle, 1024);
+	}   
+	fclose($file_handle);
+	return $line_of_text;
+ }else{
+    return false;
+ }
+}
+
+/**
+ * Helper function to give availability table 
+ */
+function stock_get_availability($isbn){
+    
+}
+
+/**
+ * Helper function to give assignment table
+ */
+function sales_create_isbn_table($isbn){
+    $query = db_select("stock","s");
+    $query->condition("s.isbn13",$isbn);
+    $query->fields("s");
+    $results = $query->orderBy('price')->orderBy('qty')->execute()->fetchAll();
+    $rows = array();
+    
+    $header = array('isbn13'=>'ISBN13','qty'=>'QUANTITY','price');
+    foreach($results as $result){
+      $row = array();
+      $row[] = $result->isbn13;
+      $row[] = $result->qty;
+      $row[] = $result->price;
+      $row[] = $result->qty;
+      $rows[] = $row;
+    }
+   
+    $output = theme('table', array(
+      'header' => $header,
+      'rows' => $rows,
+      'attributes' => array('class' => array('mytable'))
+    ));
+    return $output;
+}
+
+
+/**
+ * Handling of pick up list download
+ */
+  function sales_generate_pickup_list_submit($form,&$form_state){
+  $query= db_select('sells_records_items','pick');
+  $query->condition('status','assigned');
+  $query->fields('pick',array('sell_rec_id','item_title','custom_label','quantity'));
+  $results = $query->execute()->fetchAll();
+  $header = array('sell_rec_id','Title','ISBN','Quantity');
+  foreach($results as $pick_list){
+    $rows = array();
+    $rows[]= $pick_list->sell_rec_id;   
+    $rows[]= $pick_list->item_title; 
+    $rows[]= $pick_list->custom_label;
+    $rows[]= $pick_list->quantity;
+    $xls_content_row .= implode("\t", array_values($rows)) . "\r\n";
+    
+  }//end of for
+  $xls_content_header = implode("\t", array_values($header));
+    	$xls_content = $xls_content_header."\n".$xls_content_row;
+    	$filename = 'Stock_filter_list_'.date("d_m_Y"); 
+    	header("Content-type: text/plain; charset=UTF-8");
+    	header("Content-Disposition: attachment; filename=$filename");
+    	header("Content-Type: application/vnd.ms-excel"); 
+    	header("Pragma: no-cache");
+    	header("Expires: 0");
+    	print $xls_content;
+    	exit();   
+    	return TRUE;
+ }
+
+/**
+ * Handling of auto assignment of Sells
+ */
+/*function sales_order_assignment_submit($form,&$form_state){
+    
+    $query = db_select('sells_records_items','i');
+    $query->condition('status','queued');
+    $query->fields('i',array('sell_rec_id','sales_record_number','custom_label','quantity','sale_price'));
+		//$query->range(0,10);
+    $results = $query->execute()->fetchAll();
+    $count = 0;
+    
+    //Table name where we will keep sales order assigned an freezed
+    $assigned_to_table = 'ebay_books_order_assigned';
+  // echo count($results); exit;
+    foreach($results as $result){
+		//echo bartik_progress_bar(array('percent'=>30));
+        $isbn = (float)$result->custom_label;
+        $sell_rec_id = $result->sell_rec_id;
+        $order_id = $result->sales_record_number;
+        $sale_qty = $result->quantity;
+        $sale_price = $result->sale_price;
+        
+      // echo "***". $isbn; 
+        
+        $qry = db_select('stock','s');
+        $qry->join('field_data_field_source_rating','rating','s.source=rating.entity_id');
+        $qry->fields('s',array('qty','source','isbn13'));
+        $qry->fields('rating',array('field_source_rating_value'));
+        $qry->condition('s.isbn13',$isbn);
+        $qry->orderBy('rating.field_source_rating_value', 'DESC');
+        $qry->orderBy('s.qty', 'DESC');
+        $res1 = $qry->countQuery()->execute()->fetchField();
+        $res = $qry->execute()->fetchAll();
+    // print_r($res);die;
+        $jj[]=$res;
+      
+        if(empty($res)){
+       
+            $q = db_update('sells_records_items')
+                  ->fields(array(
+                    'assignedto' => 0,
+                    'status' => 'assigned',
+                  ))
+                  ->condition('sell_rec_id',$sell_rec_id)//
+                  ->execute();
+            
+            //Save data in temp. sales order table     
+            $input_array = array(
+                              'order_id' => $order_id,
+                              'distrbutor_id' => 0, //Assigned to Market
+                              'isbn' => $isbn,
+                              'qty' => $sale_qty,
+                              'price' => $sale_price,
+                              'invoice_no' => 0,
+                              'dtime' => time(),
+                              'status' => 'assigned'
+                            );
+            
+            ebay_books_save_records($assigned_to_table,$input_array);
+            $count++;
+        }else{
+            
+                 
+            
+         // dpr($res); die;
+      
+          //  if($res1 == 1){
+               //only one source available
+               if($res[0]->qty >=  $sale_qty){
+                //book in stock
+                $q = db_update('sells_records_items')
+                      ->fields(array(
+                        'assignedto' => $res[0]->source,
+                        'status' => 'assigned',
+                      ))
+                      ->condition('sell_rec_id',$sell_rec_id)
+                      ->execute();
+                      
+                //Save data in temp. sales order table     
+                $input_array = array(
+                                  'order_id' => $order_id,
+                                  'distrbutor_id' => $res[0]->source,
+                                  'isbn' => $isbn,
+                                  'qty' => $sale_qty,
+                                  'price' => $sale_price,
+																	'invoice_no' => 0,
+																	'dtime' => time(),
+                                  'status' => 'assigned'
+                                );
+                
+                ebay_books_save_records($assigned_to_table,$input_array);
+                
+               }else{
+                //out of stock.. from market
+                $q = db_update('sells_records_items')
+                      ->fields(array(
+                        'assignedto' => 0,
+                        'status' => 'assigned',
+                      ))
+                      ->condition('sell_rec_id',$sell_rec_id)
+                      ->execute();
+                
+                //Save data in temp. sales order table     
+                $input_array = array(
+                                  'order_id' => $order_id,
+                                  'distrbutor_id' => 0,
+                                  'isbn' => $isbn,
+                                  'qty' => $sale_qty,
+                                  'price' => $sale_price,
+																	'invoice_no' => 0,
+																	'dtime' => time(),
+                                  'status' => 'assigned'
+                                );
+                
+                ebay_books_save_records($assigned_to_table,$input_array);
+              }
+            //}else{
+//multiple stocks available  
+            } 
+        }
+       
+ }*/
+ 
+
+function sales_get_no_unassigned_items(){
+    $query = db_select('sells_records_items','i');
+	$query->condition('i.status','queued');
+	$result = $query->countQuery()->execute()->fetchField();
+    return $result;
+}
+
+/**
+ * distributor Select list options to order assignment
+ * 
+ * 
+ */
+function sales_get_reassign_options($isbn,$distributor_id,$qty,$price,$order_id){
+    $query = db_select('stock','s');
+     $query->condition('s.isbn13',$isbn);
+     $query->condition('s.source',$distributor_id,'!=');
+     $query->condition('s.qty',0,'!=');
+     $query->fields('s');
+    //$query = db_select('ebay_books_order_assigned','eb');
+//    $query->join('stock','s','s.isbn13 = eb.isbn');
+//    $query->condition('eb.isbn',$isbn);
+//    $query->condition('eb.distrbutor_id',$distributor_id,'!=');
+//    $query->condition('eb.qty',0,'!=');
+//    $query->condition('eb.status','assigned','=');
+  //    $query->fields('s');
+     $results = $query->execute()->fetchAll();
+    //$output = array();
+    
+    $output = '';
+    $output .= '<option value="0" >distributor - qty</option>';
+    
+    foreach($results as $result){
+     $dist = stock_get_distributor_name_by_id($result->source);
+     //  $dist = stock_get_distributor_name_by_id($result->distrbutor_id);
+        $dist_id_b=$result->source;
+        //$output[$result->source] = $dist . ' - ' . $result->qty;
+        $output .= '<option value="'.$result->source.'" reqqty="'.$qty.'" avlqty="'.$result->qty.'" bkprice="'.$price.'"distr_b="'.$dist_id_b.'"order_id="'.$order_id.'">'.$dist . ' - ' . $result->qty.'</option>';
+    }
+     
+    
+    return $output;
+}
+//when some isbns are leftout in market by previous logic this logic covers up 
+function sales_reassign_market(){
+ $reassign = db_select('ebay_books_order_assigned','oa');
+ $reassign->condition('oa.distrbutor_id',0,'=');
+ $reassign->fields('oa',array('isbn','order_assigned_id','order_id','price'));
+ //$reassign->condition('oa.isbn',9780140107814);
+ $result_reassign = $reassign->execute()->fetchAll();
+    //print_r($result_reassign );die;
+foreach($result_reassign as $res){
+    //print_r($res->isbn);die;
+    $search_stock =db_select('stock','s');
+    $search_stock->fields('s',array('source','qty','isbn13'));
+   // $search_stock3->join('field_data_field_source_rating','rating','s.source=rating.entity_id');
+    //$search_stock->fields('rating',array('field_source_rating_value'));
+    $search_stock->condition('s.isbn13',$res->isbn);
+    $search_stock->condition('s.qty',0,'!=');
+    $search_stock->addExpression('max(s.qty)','max_qty');
+  //  $search_stock->addExpression('max(rating.field_source_rating_value)','max_rating');
+    $result_stock=$search_stock->execute()->fetchAll();
+     //print_r($result_stock);die;
+    foreach($result_stock as $res2){
+   
+    $search_stock2 =db_select('stock','s');
+    $search_stock2->fields('s',array('source'));
+    $search_stock2->condition('s.isbn13',$res2->isbn13);
+    $result_stock2=$search_stock2->execute()->fetchAll();
+    $orby_flag=0;
+ 
+    foreach($result_stock2 as $chkorby){
+    
+    if($chkorby->source==2547){
+    $orby_flag=1;
+  
+    }
+    }
+ 
+    if($orby_flag==1 && $res2->qty!=0){
+    $dist_id=2547; 
+    }
+   
+}
+          
+   if($orby_flag==0){
+   
+    $search_stock3 =db_select('stock','s');
+    $search_stock3->fields('s',array('source'));
+    $search_stock3->condition('s.qty',$res2->max_qty);
+    $result_stock3=$search_stock3->execute()->fetchField();
+     
+    $dist_id=intval($result_stock3); 
+   
+   }  //print_r($dist_id);die;
+   
+  // print_r($dist_id);die;
+    $update_market = db_update('ebay_books_order_assigned');
+    $update_market->fields(array('distrbutor_id' =>$dist_id));
+    $update_market->condition('order_assigned_id',$res->order_assigned_id);
+    $update_market->execute();
+   
+    $update_market_sales = db_update('sells_records_items');
+    $update_market_sales->fields(array('assignedto' =>$dist_id));
+    $update_market_sales->condition('sales_record_number',$res->order_id);
+    $update_market_sales->condition('custom_label',$res->isbn);
+    $update_market_sales->condition('status','assigned');
+    $update_market_sales->condition('sale_price',$res->price);
+    $update_market_sales->execute();
+    //print_r($dist_id);die;
+            
+     }	
+//     
+//    $reassign_zero_check = db_select('ebay_books_order_assigned','oa');
+//    $reassign_zero_check->condition('oa.distrbutor_id',2547,'=');
+//    $reassign_zero_check->fields('oa',array('isbn','order_assigned_id','order_id','price'));
+//    //$reassign->condition('oa.isbn',9780140107814);
+//    $reassign_zero_check_result = $reassign->execute()->fetchAll();
+// 
+// foreach($reassign_zero_check_result as $re){
+//    $search_stock4 =db_select('stock','s');
+//    $search_stock4->fields('s',array('source'));
+//    $search_stock4->condition('s.isbn13',$res2->isbn13);
+//    $search_stock4=$search_stock->execute()->fetchAll();
+//    
+//    
+// }
+ 
+     
+     //drupal_goto('sales/order/assign');
+        drupal_goto('sales/activate/deactivate/batch');
+     
+}
+function sales_generate_batch_id(){
+    $query=db_select('ebay_books_order_assigned','oa');
+    // $query->fields('oa',array('batch'));
+    $query->addExpression('max(oa.batch)','max_batch');
+    $result = $query->execute()->fetchField();
+    $batch=$result+1;
+    $batch_updated = db_update('ebay_books_order_assigned');     
+    $batch_updated->condition('batch',0,'=');
+    $batch_updated->fields(array('batch' => $batch));
+    $batch_updated->execute(); 
+    
+    $recheck_deactivate= db_select('ebay_books_order_assigned','oa');
+    $recheck_deactivate->addExpression('MAX(oa.batch)','max_batch');
+    $re_act=$recheck_deactivate->execute()->fetchField();
+    
+    db_update('ebay_books_order_assigned')
+    ->expression('status', 'CONCAT(status, :newstring)', array(':newstring' => '_waiting'))
+    ->condition('batch',$re_act,'!=')
+    ->condition('status','to_be_procured_waiting','!=')
+    ->condition('status','procured_waiting','!=')
+    ->condition('status','assigned_waiting','!=')
+    ->condition('status','freezed_waiting','!=')
+    ->execute();
+    
+   drupal_goto('sales/reassign/market');
+//drupal_goto('sales/activate/deactivate/batch');
+      
+   }
+function sales_activate_deactivate_list(){
+       sales_update_sla();//update sla on regular basis 
+    drupal_add_css(drupal_get_path('module', 'sales') . '/sales.css');
+    drupal_add_js(drupal_get_path('module','sales').'/sales.js'); 
+    $header =  array(
+    array('data' => t('Batch Id'), 'field' => $res->batch, 'sort' => 'desc'),
+    array('data' => t('No of Unprocured Items'), 'field' => $unprocured, 'sort' => 'desc'),
+    array('data' => t('Batch Uploaded On (m-d-Y)'), 'field' => $date_up),
+    array('data' => t('Range of Sales Record No'), 'field' => $range),
+    array('data' => t('Current Status'), 'field' => $status),
+    array('data' => t('Action'), 'field' => $link),
+    array('data' => t('Dispose'), 'field' => $disp),
+    );
+ //$header = array('Batch Id', 'Batch Uploaded On (m-d-Y)','Range of Sales Record No','Current Status','Action');
+    $unprocured=0;
+   // print_r('hi');die;
+    $get_batch=db_select('ebay_books_order_assigned','oa');
+    $get_batch->addExpression('Distinct(oa.batch)','batch_all');
+    $get_batch->orderBy('batch_all','desc');
+    $result=$get_batch->execute()->fetchAll();
+    $counter=0;
+        foreach($result as $batch){
+        $get_batch_details= db_select('ebay_books_order_assigned','oa');
+        $get_batch_details->join('sales_records','ss','ss.sales_record_no = oa.order_id');
+        $get_batch_details->fields('oa',array('status','batch'));
+       // $get_batch_details->addExpression('MAX(oa.dtime)','max_dtime');
+        $get_batch_details->addExpression('MAX(ss.record_uploaded_date)','max_dtime_sales');
+        $get_batch_details->addExpression('MAX(oa.order_id)','max_order_id');
+        $get_batch_details->addExpression('MIN(oa.order_id)','min_order_id');
+        $get_batch_details->condition('oa.batch',$batch->batch_all);
+        $result_details=$get_batch_details->execute()->fetchAll();
+         //Getting unprocured items
+          $get_unprocured= db_select('ebay_books_order_assigned','oa');
+          $get_unprocured->fields('oa',array('status','batch'));
+          $get_unprocured->condition('oa.batch',$batch->batch_all);    
+          $get_unprocured->condition('oa.status','procured_waiting','!=');
+          $get_unprocured->condition('oa.status','procured','!=');
+           $result_unprocured=$get_unprocured->countQuery()->execute()->fetchField();
+              //print_r($result_unprocured);die;
+              
+        foreach($result_details as $res){
+            
+        if($res->status=='to_be_procured_waiting'|| $res->status=='procured_waiting'||
+        $res->status=='assigned_waiting'||$res->status=='freezed_waiting'){
+        $status='<b><span style= "color: #FF0004;">DISABLED</span></b>';
+        $link = '<a href="/ebayconsole2/sales/activate/batch/'.$batch->batch_all.'" ><b><span style= "color: #0F8E42;">ENABLE</span></b></a>';
+        }
+        else{
+        $status='<b><span style= "color: #0F8E42;">ENABLED</span><b>';
+        $link = '<a href="/ebayconsole2/sales/deactivate/batch/'.$batch->batch_all.'" ><b><span style= "color: #FF0004;">DISABLE<span></b></a>';
+        }
+        
+         
+        
+        
+        $date_up=date('m-d-Y',$res->max_dtime_sales);
+        $range='<b>From '.$res->min_order_id.' To '.$res->max_order_id.'</b>';
+        if($counter==0){
+        $batch_number='<div style= "font-style: bold;  " ><b>'.$res->batch.'   <span style= "color: #2D00F8;">(NEW)*</span></b></div>';}
+        else{
+        $batch_number='<b>'.$res->batch.'</b>';}
+        //$disp_old= '<a href="/ebayconsole2/sales/dispose/batch/'.$batch->batch_all.'" ><span style="color: red">Dispose Batch</span></a>';
+        $disp='<div class="next-popup-wrap">
+        <p class="desc"> By clicking this Batch will be deleted to continue click Ok</p>
+        <p class="action"><span class="flL"><a href="#">[ Cancel ]</a><span class="flR"><a class="abc" href="">[ Ok ]</a></span> </span></p>
+        </div><div id ="nextmain3"><a class="next-popup" href="#">Dispose Batch_'.$res->batch.'</a></div>';  
+
+            $row = array();
+            $row[]=$batch_number;
+            $row[]=$result_unprocured;
+            $row[]='<b>'.$date_up.'</b>';
+            $row[]=$range;
+            $row[]=$status;
+            $row[]=$link;
+            $row[]=$disp;
+            $rows[] = $row; 
+            $counter++;
+            }   
+            
+    }
+
+  
+    return '<div id="backs2"><strong><a href="/ebayconsole2/sales/order/assignment">BACK</a></strong></div><div><div id="nextmain2"><strong><a href="/ebayconsole2/sales/order/assign">NEXT</a></strong></div><div>'.theme('table', array('header' => $header, 'rows' => $rows , 'attributes' => array('id' => 'sort-table'))).theme('pager').'</div>';
+}
+function sales_activate_batch(){
+   
+    $batch=arg(3);
+    //activate all status
+    $update_active1 = db_update('ebay_books_order_assigned');
+    $update_active1->fields(array('status' => 'to_be_procured'));
+    $update_active1->condition('status','to_be_procured_waiting');
+    $update_active1->condition('batch',$batch);
+    $update_active1->execute();
+    
+    $update_active2 = db_update('ebay_books_order_assigned');
+    $update_active2->fields(array('status' => 'procured'));
+    $update_active2->condition('status','procured_waiting');
+    $update_active2->condition('batch',$batch);
+    $update_active2->execute();
+    
+    $update_active3 = db_update('ebay_books_order_assigned');
+    $update_active3->fields(array('status' => 'assigned'));
+    $update_active3->condition('status','assigned_waiting');
+    $update_active3->condition('batch',$batch);
+    $update_active3->execute();
+    
+    $update_active4 = db_update('ebay_books_order_assigned');
+    $update_active4->fields(array('status' => 'freezed'));
+    $update_active4->condition('status','freezed_waiting');
+    $update_active4->condition('batch',$batch);
+    $update_active4->execute();
+   
+    //deactivate others if active
+    db_update('ebay_books_order_assigned')
+    ->expression('status', 'CONCAT(status, :newstring)', array(':newstring' => '_waiting'))
+    ->condition('batch',$batch,'!=')
+    ->condition('status','to_be_procured_waiting','!=')
+    ->condition('status','procured_waiting','!=')
+    ->condition('status','assigned_waiting','!=')
+    ->condition('status','freezed_waiting','!=')
+    ->execute();
+
+    drupal_set_message("Batch No.".$batch." Enabled Successfully any other active batch is now Disabled");
+    drupal_goto('sales/activate/deactivate/batch');
+    
+}
+function sales_deactivate_batch(){
+    $batch=arg(3);
+     //Deactivate batch
+    db_update('ebay_books_order_assigned')
+  ->expression('status', 'CONCAT(status, :newstring)', array(':newstring' => '_waiting'))
+  ->condition('batch',$batch)
+  ->execute();
+    drupal_set_message("Batch No.".$batch." Disabled Successfully");
+    drupal_goto('sales/activate/deactivate/batch');
+}
+function sales_dispose_batch(){
+ 
+    $batch=arg(3);
+    //print_r($batch);die;
+    $qu=db_select('ebay_books_order_assigned','oa');
+    $qu->fields('oa',array('order_id'));
+    $qu->condition('batch',$batch);
+    $re=$qu->execute()->fetchAll();
+    //  print_r($re);die;
+   foreach($re as $res){
+   // print_r($res->order_id);die;
+    db_delete('sales_records')
+  ->condition('sales_record_no',$res->order_id)
+  ->execute();
+    db_delete('sells_records_items')
+  ->condition('sales_record_number',$res->order_id)
+  ->execute();
+   }
+   
+    db_delete('ebay_books_order_assigned')
+  ->condition('batch',$batch)
+  ->execute();
+    drupal_set_message("Batch No.".$batch." Disposed Successfully");
+    drupal_goto('sales/activate/deactivate/batch');
+  
+}

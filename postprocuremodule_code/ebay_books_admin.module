@@ -1,0 +1,61 @@
+<?php
+/**
+ * Implements hook_init 
+ */
+function ebay_books_admin_init() {
+    drupal_add_css(drupal_get_path('module', 'ebay_books_admin') . '/ebay_books_admin.css');
+}
+
+/**
+ * Custom function to save records
+ * @param
+ *   $table is table name in which records will save,
+ *   $input_array: is array of fields and values
+ * 
+ */
+function ebay_books_save_records($table,$input_array){
+    //dpr($catalog_xls_info); die;
+//	try{
+	   db_insert($table)
+    	->fields($input_array)
+    	->execute(); 
+	//}catch(exception $e){
+	 //print_r($input_array);die;
+
+//	}
+        	
+}	
+
+
+/**
+ * Custom function to update records
+ *
+ */ 
+ function ebay_books_update_records($table,$field_name,$field_value,$update_values){
+   //watchdog('after','From: %from', array('%from', print_r($catalog_xls_info)));  
+   db_update($table)
+   ->fields($update_values)
+   ->condition($field_name, $field_value, '=')
+   ->execute();
+ }	
+
+/**
+ * delete Specific records
+ * 
+ */
+function ebay_books_delete_records($table,$field_name,$field_value){ 
+ $num_deleted = db_delete($table)
+  ->condition($field_name, $field_value)
+  ->execute();
+  return TRUE;
+}
+
+/**
+ * Delete multiple records using IN clause
+ * 
+ */
+function ebay_books_delete_records_mulitiple($table_name,$field_name,$array_ids){
+  $delete_selected = db_delete($table_name)
+  ->condition($field_name, $array_ids,'in')
+  ->execute();
+}  

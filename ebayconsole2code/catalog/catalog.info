@@ -1,0 +1,12 @@
+name = Catalog
+description = Process and create catalogs by importing vendors catalaog information.
+package = Book Console
+core = 7.x
+dependencies[] = ebay_books_admin
+
+; Information added by drupal.org packaging script on 2012-05-17
+version = "7.x-3.0-rc3"
+core = "7.x"
+project = "Ebay Books Administration"
+datestamp = "1337292349"
+

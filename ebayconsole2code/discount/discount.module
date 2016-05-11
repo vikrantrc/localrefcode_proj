@@ -1,0 +1,986 @@
+<?php 
+//$utf8_text = html_entity_decode( $text, ENT_QUOTES, "utf-8" );
+function discount_init() {
+    drupal_add_css(drupal_get_path('module', 'discount') . '/discount.css');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function discount_menu() {
+  $items['discount/add_promotional_books'] = array(
+	'title' => 'Add promotional books',    
+    'page callback' => 'drupal_get_form',
+	'page arguments' => array('discount_add_promotional_books'),
+    'access arguments' => array('access content'),
+  );
+  
+  $items['discount/list_all/promotional_books_expiry'] = array(
+	'title' => 'List promotional books nearing expiry',
+    'page callback' => 'drupal_get_form',
+	'page arguments' => array('discount_list_all_promotional_books_expiry'),
+    'access arguments' => array('access content'),
+    'file'=>'discount_list_all_expiring_promotional_books.inc',
+  );
+  
+  $items['discount/list_all/promotional_books'] = array(
+	'title' => 'List all promotional books',    
+    'page callback' => 'drupal_get_form',
+	'page arguments' => array('discount_list_all_promotional_books'),
+    'access arguments' => array('access content'),
+  );
+ 
+  $items['discount/promotion_sheet'] = array(
+	'title' => 'Discount Sheet',
+    'description' => 'Discount Sheet',
+    'page callback' => 'discount_promotion_template',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['ebay_books/download/paraller_promo'] = array(
+	'title' => 'Downlaod paraller promo ISBN',
+    'page callback' => 'discount_downlaod_promotion_paraller_isbn',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  
+  $items['view/promo_books/%'] = array(
+	'title' => 'View each promotional book',    
+	'page callback' => 'drupal_get_form',
+    'page arguments' => array('discount_view_promotion_book',2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+     
+  );
+   $items['edit/promo_books/%'] = array(
+	'title' => 'Edit each promotional book',    
+	'page callback' => 'drupal_get_form',
+    'page arguments' => array('discount_edit_promotion_book',2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+     
+  );
+  
+  $items['discount/delete/promotional_books/%'] = array(
+	'title' => 'Delete promo book',    
+    'page callback' => 'discount_delete_promotion_book',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(3),
+  );
+   $items['discount/delete/promotional_books/confirm/%'] = array(
+	'title' => 'confirm delete',    
+	'page callback' => 'drupal_get_form',
+    'page arguments' => array('discount_delete_promotionbooks_group',4), 
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,  
+  );
+  
+   $items['discount/delete/promo_books/confirm/%/%'] = array(
+    'title' => 'confirm delete',    
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('discount_delete_promo_from_view',4,5), 
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,  
+  );
+  
+  $items['discount/download/todays_stocks'] = array(
+    'title' => 'Downlaod Todays Stock',    
+    'page callback' => 'discount_downlaod_todays_stock_feeds',   
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,  
+  ); 
+  
+  $items['discount/list_all/distributor_list'] = array(
+    'title' => '',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('discount_list_all_distributor_list'),
+    'access arguments' => array('access content'),
+    'file'=>'discount_listingpage.inc',
+  );
+  $items['discount-test-callback/%'] = array(
+    'page callback' => 'discount_modal_callback',
+    'page arguments' => array('discount_modal_callback',1), 
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  
+  $items['discount/download/promotional_book_list'] = array(
+    'title' => 'Download promos list',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('promo_book_download_feed_filter'),
+    'access arguments' => array('access content'),
+    'file'=>'promo_book_download.inc',
+  );
+  return $items;
+}
+
+/**
+ * Downalod todays stock feeds by click on Icon
+ */ 
+function discount_downlaod_todays_stock_feeds(){
+    //echo 'Page under development';
+    $ff =  drupal_set_message('Page under development.');
+    return $ff;
+}
+
+
+/** 
+* Delete Confirmation from all promotions list page
+*/
+function  discount_delete_promotionbooks_group($form,&$form_state,$promo_name){
+ //echo $promo_name;die;
+  $form['delete_confirm'] = array(
+		'#type' => 'value',
+		'#value' => $promo_name,
+	);
+
+	$path='discount/list_all/promotional_books';
+    $question='Are you sure you want to delete '.$promo_name;
+    $description='This action cannot be undone';
+    $yes='Delete';
+    $no='Cancel';
+    $name='confirm';
+ return confirm_form($form, $question, $path, $description, $yes, $no , $name);
+}
+
+
+/**
+*Delete confirmation on promotions view page
+*/
+function  discount_delete_promo_from_view($form,&$form_state,$promo_id,$promo_name){
+ //echo $promo_name;die;
+  $form['delete_confirm_id'] = array(
+		'#type' => 'value',
+		'#value' => $promo_id,
+	);
+	$form['delete_confirm_name'] = array(
+		'#type' => 'value',
+		'#value' => $promo_name,
+	);
+
+    $path='view/promo_books/'.$promo_name;
+    $question='Are you sure you want to delete '.$promo_id;
+    $description='This action cannot be undone';
+    $yes='Delete';
+    $no='Cancel';
+    $name='confirm2';
+    return confirm_form($form, $question, $path, $description, $yes, $no , $name);
+}
+
+
+
+/**
+*Delete Check And Submission all promotions list page
+*/
+function discount_delete_promotionbooks_group_submit($form, &$form_state) {
+	$form_values = $form_state['values'];
+ 
+	if ($form_state['values']['confirm']) {
+		$delete_confirm = $form_state['values']['delete_confirm'];
+ 
+		discount_delete_promotion_book($delete_confirm);			
+ 
+		drupal_set_message(t('Record has been deleted successfully.'));
+  	}
+ 
+	drupal_goto("discount/delete/promotional_books/");
+}
+
+/**
+*Delete Check And Submission  from view promotions list page
+*/
+function discount_delete_promo_from_view_submit($form, &$form_state) {
+	$form_values = $form_state['values'];
+ 
+	if ($form_state['values']['confirm2']) {
+		$delete_confirm_id = $form_state['values']['delete_confirm_id'];
+		$delete_confirm_name = $form_state['values']['delete_confirm_name'];
+ 
+		discount_delete_promotion_book_by_name($delete_confirm_id,$delete_confirm_name);			
+ 
+		drupal_set_message(t('Record has been deleted successfully.'));
+  	}
+ 
+	drupal_goto("view/promo_books/".$delete_confirm_name);
+}
+
+
+/**
+*function to call records by promo name
+*/
+function discount_get_promo_records_by_promo_name($promo_name){
+    $query = db_select('ebay_books_promotions','pbn');
+    $query->leftjoin('catalog', 'c', 'c.isbn13 = pbn.promo_isbn');  
+    $query->fields('pbn',array('promo_id','promo_isbn','promo_name','promo_days','promo_discount'));
+    $query->fields('c',array('title'));
+    $query->condition('promo_name', $promo_name, '=');  
+    $query = $query->extend('PagerDefault')->limit(10); 
+    
+    $isbn_redsn = $query->execute()->fetchAll();
+    $isbn_rec_array_list = object_to_array($isbn_redsn);
+    return $isbn_rec_array_list;  
+}
+
+
+/**
+ * View promotional book details having promo name pass by 
+ */
+function discount_view_promotion_book($form,&$form_state,$promo_name){   
+    $header = array();
+	$isbn_rec_array_list = discount_get_promo_records_by_promo_name($promo_name);
+    
+    $header = array('promo_isbn' => 'Promo ISBN',
+                    'title' => 'Book Title',
+	                'promo_days'=>'Promotion Days',
+	                'promo_discount'=>'Discount',
+				    'operation'=>'Operation',
+                    );  
+                     					
+    $options = array();
+    $flag2 = 0;
+	if($isbn_rec_array_list){ 
+       $n2 =0;
+       $flag2 = 1;
+       foreach($isbn_rec_array_list as $record){  
+        $promo_id =$record['promo_id'];   
+        $promo_name = $record['promo_name'];
+        $promo_days = $record['promo_days'];
+		$promo_discount=$record['promo_discount'];
+        $record['operation'] =  l('Edit','edit/promo_books/'.$record['promo_id'])." 
+		".l('Delete','discount/delete/promo_books/confirm/'.$record['promo_id'].'/'.$record['promo_name']);
+		 //  drupal_set_message('<pre>'. print_r($promo_name, TRUE) .'</pre>');  
+        $options[$record['promo_id']] = $record;
+		
+        $n2++;
+       }  
+    }
+	//dpr($options);die;
+	
+	  
+	 $default_value = array();
+    $IsCheckbox = true;
+    if($IsCheckbox){
+        $default_value[0] = true;
+        $default_value[1] = false;
+    }else{
+     $default_value = '0';
+    }
+	  
+	  
+	$form['view_each_promo_book'] = array (
+        '#type' => 'tableselect',
+        '#title' => 'My Selector',
+        '#header' => $header,
+        '#options' => $options,
+        '#multiple' => $IsCheckbox,
+        '#default_value' => $default_value
+    );    
+    
+   
+   if($flag2 == 1){
+    
+     $form['view_each_promo_delete'] = array (
+        '#type' => 'submit',
+        '#value' => 'Delete',       
+    );
+    
+     $form['promo_group_back'] = array (       
+        '#markup' => l('Back', 'discount/list_all/promotional_books'),        
+     );     
+    
+   }else{
+     $form['no_rec_promo'] = array ( 
+         '#markup' => "No records found",
+     );
+   }  
+   
+    $form['page_shown'] = array (        
+        '#markup' => theme("pager"),    
+    );
+        
+   return $form; 
+}
+
+function discount_edit_promotion_book($form,&$form_state,$promo_name)
+{ // dpr($form_state);die;
+     $form['edit_promotional_books'] = array(
+		  '#type' => 'fieldset',
+		  '#title' => t('Edit promotional books'),
+		  '#weight' => 0,
+		  '#collapsible' => TRUE,
+		  '#collapsed' => FALSE,
+          
+	);
+     $form['edit_promotional_books']['promotional_days'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Promotion Days'), 
+		'#size' => 60, 
+		'#required' => TRUE,
+        '#default_value' => 15,
+	);
+      $form['edit_promotional_books']['discount'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Discount'), 
+		'#size' => 60, 
+		'#required' => TRUE,
+        '#default_value' => 15,
+	);
+    return $form;
+}
+  
+/**
+*Function to delete multiple selection
+*/
+function discount_view_promotion_book_submit($form,&$form_state){
+  $view_each_promo_book =  $form_state['values']['view_each_promo_book'];
+ // dpr($view_each_promo_book);
+ if($view_each_promo_book){
+  $del_count=0;
+  foreach($view_each_promo_book as $prm_id => $prom_value){
+  
+    if($prom_value){
+	  $delete_promo[] = $prom_value;
+	  $del_count++;
+	}
+  }//End for loop
+  
+  //dpr($delete_promo);
+  
+  $table_name = 'ebay_books_promotions';
+  $field_name = 'promo_id';
+  $array_ids = $delete_promo;
+  
+  ebay_books_delete_records_mulitiple($table_name,$field_name,$array_ids);
+  
+  drupal_set_message(t($del_count.' Records deleted successfully.'));
+ 
+ }
+  
+}
+
+/**
+ * Delete promotionalbooks by id 
+ */
+function discount_delete_promotion_book($promo_book){     
+    $table = 'ebay_books_promotions';
+    $field_name = 'promo_name';
+    $field_value = $promo_book;   
+    $deleted = ebay_books_delete_records($table,$field_name,$field_value);
+    drupal_set_message('Record Deleted successfully.');
+    drupal_goto('discount/list_all/promotional_books');
+}
+
+
+ /**
+ * Delete promotionalbooks by name
+ */
+function discount_delete_promotion_book_by_name($promo_book,$delete_confirm_name){     
+    $table = 'ebay_books_promotions';
+    $field_name = 'promo_id';
+    $field_value = $promo_book;   
+    $deleted = ebay_books_delete_records($table,$field_name,$field_value);
+    drupal_set_message('Record Deleted successfully.');
+    drupal_goto('view/promo_books'.'/'.$delete_confirm_name);
+}
+ 
+ 
+/**
+ * Implements callback of create_stock_template
+ */
+function discount_add_promotional_books(){
+   //drupal_add_js(drupal_get_path('module', 'stock') . '/stock.js');
+   $form['add_promotional_books'] = array(
+		  '#type' => 'fieldset',
+		  '#title' => t('Add promotional books'),
+		  '#weight' => 0,
+		  '#collapsible' => TRUE,
+		  '#collapsed' => FALSE,
+          //'#description' => 'Select multipal ISBN from .xls list and keep it line by line in books ISBN text area.',
+	);
+    
+   $form['add_promotional_books']['promotion_name'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Please enter the promotion name'),
+        '#title' => t('Promo Name'),
+        '#size' => 60,
+        '#maxlength' => 128,
+        '#required' => FALSE,
+	);
+  
+   $form['add_promotional_books']['promotional_days'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Promotion Days'), 
+		'#size' => 60, 
+		'#required' => TRUE,
+        '#default_value' => 15,
+	);
+    
+    $form['add_promotional_books']['promotional_days'] = array(
+		'#type' => 'textfield', 
+		'#title' => t('Promotion Days'), 
+		'#size' => 60, 
+		'#required' => TRUE,
+        '#default_value' => 15,
+	);
+    
+   
+     $form['add_promotional_books']['promotional_discount'] = array(
+		'#type' => 'markup', 
+        '#markup' => 'To download example sheet to upload <a href = "/ebayconsole2/discount/promotion_sheet">click here</a>.'
+	);
+    
+    $form['add_promotional_books']['upload_sheet'] = array(
+		'#type' => 'file', 
+		'#title' => t('Upload promotional sheet'), 
+        '#description' => 'Select .xls file having list of ISBN and their respective discounts.',
+	);
+    
+   $form['add_promotional_books']['save_promotion'] = array(
+		'#type' => 'submit',
+		'#value' => t('Save Promotions'),	
+	); 
+	return $form;
+} 
+
+/**
+ * Implements hook_form_validate
+ */
+function discount_add_promotional_books_validate($form,&$form_state){
+    $file = file_save_upload('upload_sheet', array('file_validate_extensions' => array('xls'),));
+	require_once 'excel_reader2.php';
+    
+    //dpr(); die;
+    $promo_name = $form_state['values']['promotion_name'];
+    
+    if($pname = discount_get_promo_name($promo_name)){
+         form_set_error('promotion_name', t('Promotion name already exist, please try different.'));
+    }
+        
+	if($file) {
+      if ($file = file_move($file, 'public://')) {
+        $form_state['values']['file'] = $file;
+      }else {
+        form_set_error('file', t('Failed to write the uploaded file the site\'s file folder.'));
+      }
+    }
+    
+    //
+}
+
+/**
+ * Implements hook_form_submit
+ */
+function discount_add_promotional_books_submit($form,&$form_state){
+     require_once 'excel_reader2.php';
+     
+   // print_r($form_state['values']);die;
+    $promo_name = $form_state['values']['promotion_name'];
+    $promo_days = $form_state['values']['promotional_days'];
+   
+    $file = $form_state['values']['file'];
+	$file->status = FILE_STATUS_PERMANENT;
+    $filepath = drupal_realpath($file->uri);
+    
+    $data = new Spreadsheet_Excel_Reader($filepath);
+    $numrows = count($data->sheets[0]['cells']);
+    $numcols = $data->sheets[0]['numCols']; 
+    $parra_falg = 0;
+    
+    //trucate table    
+    $result = db_truncate('ebay_books_paraller_promo_isbn')->execute();
+    $count = 0;
+    for($row = 2; $row <= $numrows; $row++) {
+        $row_xl = array();
+		for ($col = 1; $col <= $numcols; $col++) {
+			$output[$row][$col] = $data->val($row, $col, $sheet = 0);
+			$row_xl[] = substr($output[$row][$col],0,50);
+		}
+        
+        $promo_isbn = $output[$row][1];
+        
+        //Check for ISBN already present  in DB
+        if($isbn = discount_get_promo_isbn($promo_isbn)){
+           $parra_falg = 1;
+           //Save paraller promo ISBN
+           //$promo_isbn_info[] =$promo_isbn ;
+           $table = 'ebay_books_paraller_promo_isbn';
+           
+           $input_array = array(
+                           'paraller_promo_isbn' => $promo_isbn,
+                          );
+                          
+           ebay_books_save_records($table,$input_array);
+           $count++;
+        }else{
+            $discount = $output[$row][2];
+             // Saves information only if discount has some value
+             if($discount && $promo_isbn){
+                 $promo_isbn = array(  
+                    'promo_id' => NULL, 
+                    'promocode' => $promo_name.'_'.$output[$row][1],  
+                    'promo_name' => $promo_name,                        
+                    'promo_isbn' => $promo_isbn,
+                    'promo_days' => $promo_days,
+                    'promo_discount' => $discount,
+                    'promo_time_from' => time(),
+                    'status' => 'active',
+                 );
+              
+                 $table = 'ebay_books_promotions';
+                 ebay_books_save_records($table,$promo_isbn);
+             }  
+             
+        }       
+        
+    }
+    
+    //Download all parraler promo ISBN
+    if($parra_falg){
+        //discount_promotion_paraller_isbn($promo_isbn_info);        
+        drupal_set_message($count ." uploaded promotion books are already active in promoting book section. ". l('Click here ','ebay_books/download/paraller_promo') ." to see it. ");
+         drupal_goto('discount/add_promotional_books');
+    }else{
+        drupal_set_message("Promotion uploaded succesfully");
+        drupal_goto('discount/list_all/promotional_books');
+    }
+    
+    
+  
+}
+
+/**
+ * Check for promo name is exist or not
+ */
+function discount_get_promo_name($promo_name) { 
+  $query = db_select('ebay_books_promotions','b');
+  $query->condition('b.promo_name', $promo_name, '=');  
+  $query->fields('b',array('promo_name'));
+  $promo_name = $query->execute()->fetchField();  
+  return $promo_name;
+}
+
+
+/**
+ * Get ISBN listing by promo name.
+ */
+function discount_get_isbn_list_by_promo_name($promo_name) { 
+  $query = db_select('ebay_books_promotions','b');
+  $query->condition('b.promo_name', $promo_name, '=');  
+  $query->fields('b');
+  $promo_name = $query->execute()->fetchAll();  
+  $isbn_rec_array = object_to_array($promo_name);
+  return $isbn_rec_array;
+}
+
+
+/**
+ * Check for promo isbn is exist with status Active
+ */
+function discount_get_promo_isbn($promo_isbn) {  
+  $query = db_select('ebay_books_promotions','b');
+  $query->condition('b.promo_isbn', $promo_isbn, '=');
+  $query->condition('b.status', 'active', '=');
+  $query->fields('b',array('promo_isbn')); 
+  $promo_isbn = $query->execute()->fetchField();  
+  return $promo_isbn;
+}
+
+/**
+ * SQL to get all promo books
+ */
+function discount_get_promo_books(){
+    $query = db_select('ebay_books_promotions','pb');  
+    $query->fields('pb',array('promo_id','promo_name','promo_days','promo_discount','promo_time_from'));
+    $query->groupBy('pb.promo_name');//GROUP BY promo name
+    $query->addExpression('COUNT(pb.promo_isbn)','isbns_present');
+    $query->condition('pb.status', 'active');  
+    $query = $query->extend('PagerDefault')->limit(10); 
+    
+    $isbn_reds = $query->execute()->fetchAll(); //fetchAll
+    $isbn_rec_array = object_to_array($isbn_reds);
+    return $isbn_rec_array;  
+}
+
+/**
+ * List all promotional Books
+ */
+function discount_list_all_promotional_books(){
+    $header = array();
+    $isbn_rec_array = discount_get_promo_books();
+     //Here we  can map db field name to header name
+    $header = array('promo_name' => 'Promo Name','isbns_present' => 'Promo Count',
+                    'promo_days' => 'Promo Days',
+                    'expires' => 'Promo Expires On','operation'=>'Operation');
+    // dpr($isbn_rec_array); die;
+    $options = array();
+    
+     $flag = 0;
+    if($isbn_rec_array){ 
+       $n =0;
+       $flag = 1;
+       foreach($isbn_rec_array as $rec){  
+           
+        $time_from = $rec['promo_time_from'];
+        $no_of_days = $rec['promo_days'] * 86400;
+        $rec['expires'] = date("d-m-Y H:i:s", $time_from + $no_of_days);
+         
+        $rec['operation'] =  l('View','view/promo_books/'.$rec['promo_name'])." ".l('Delete','discount/delete/promotional_books/confirm/'.$rec['promo_name']);
+		//'discount/delete/promotional_books/'.$rec['promo_name']
+        //$options[$rec['promo_name']][] = $rec;        
+        $options[$rec['promo_name']] = $rec;
+        $n++;
+       }  
+    }
+    
+    //$options = array();
+    $default_value = array();
+    $IsCheckbox = true;
+    if($IsCheckbox){
+        $default_value[0] = true;
+        $default_value[1] = false;
+    }else{
+     $default_value = '0';
+    }
+    
+    
+    
+     $form['add_promo_books_dis'] = array (        
+        '#markup' => l("Add Promotional Books",'discount/add_promotional_books'),    
+     );   
+    
+    $form['myselector'] = array (
+        '#type' => 'tableselect',
+        '#title' => 'My Selector',
+        '#header' => $header,
+        '#options' => $options,
+        '#multiple' => $IsCheckbox,
+        '#default_value' => $default_value
+    );
+    
+     
+   
+   if($flag == 1){
+     $form['delete_multi_promo_group'] = array (
+        '#type' => 'submit',
+        '#value' => 'Delete'        
+     );    
+     
+   }else{
+     $form['no_rec_promo'] = array ( 
+         '#markup' => "No records found",
+     );
+   }   
+   
+     $form['page_shown'] = array (        
+        '#markup' => theme("pager"),    
+     );   
+   return $form;
+}
+
+
+function discount_list_all_promotional_books_submit($form,&$form_state){
+    $myselector_values = $form_state['values']['myselector'];
+    if($myselector_values){
+        $del_count=0;        
+        foreach($myselector_values as $prm_id => $prom_value){
+          if($prom_value){
+             $delete_promo[] = $prom_value;
+             $del_count++;
+          }
+        }//End for loop
+    
+    //dpr($delete_promo);die;
+    
+    $table_name = 'ebay_books_promotions';
+    $field_name = 'promo_name';
+    $array_ids = $delete_promo;
+    
+    ebay_books_delete_records_mulitiple($table_name,$field_name,$array_ids);    
+    drupal_set_message(t($del_count.' Records deleted successfully.'));
+
+  }
+}
+
+
+
+
+/**
+ * Convert object array to normal array
+ */
+function object_to_array($data)
+{
+    if (is_array($data) || is_object($data))
+    {
+        $result = array();
+        foreach ($data as $key => $value)
+        {
+             $result[$key] = object_to_array($value);
+        }
+        return $result;
+    }
+    return $data;
+}
+
+function discount_promotion_template(){
+    $header = array('ISBN13','DISCOUNT');
+    $xls_content_header = implode("\t", array_values($header));
+    $xls_content = $xls_content_header;
+    $filename = 'Promotional_disc_'.date("d_m_Y"); 
+    header("Content-type: text/plain; charset=UTF-8");
+    header("Content-Disposition: attachment; filename=$filename");
+    header("Content-Type: application/vnd.ms-excel"); 
+    header("Pragma: no-cache");
+    header("Expires: 0");
+    print $xls_content;
+    exit(); 
+}
+
+/**
+ * Creates a xls sheet with parrale ISBN in promotion
+ */
+function discount_downlaod_promotion_paraller_isbn(){ 
+    $isbn = discount_get_promotion_paraller_isbn();
+   // Select ISBN from DB
+  // dpr($isbn); die;
+   $header = array('ISBN13');
+  //Create a xls 
+   $xls_content_row = '';
+  foreach($isbn as $rwcount => $isbnval){
+    $row = array();
+    $row[] = $isbnval;	  
+    $xls_content_row .= implode("\t", array_values($row)) . "\r\n";
+  }
+  
+	$xls_content_header = implode("\t", array_values($header));
+	$xls_content = $xls_content_header."\n".$xls_content_row;
+	$filename = 'Paraller_isbn_list_'.date("d_m_Y"); 
+	header("Content-type: text/plain; charset=UTF-8");
+	header("Content-Disposition: attachment; filename=$filename");
+	header("Content-Type: application/vnd.ms-excel"); 
+	header("Pragma: no-cache");
+	header("Expires: 0");
+	print $xls_content;
+	exit();   
+ }
+ 
+/**
+ * Get paraller promo books ISBN 
+ */
+function discount_get_promotion_paraller_isbn(){
+  $query = db_select('ebay_books_paraller_promo_isbn','n');   
+  $query->fields('n',array('paraller_promo_isbn'));
+   $nid_reds = $query->execute()->fetchCol();    
+  return $nid_reds;
+}
+
+/**
+ * Fetch all promo books which are expiring for cetaing number of days
+ */
+function discount_find_promo_book_expiring($exp_days){
+    $query = db_select('ebay_books_promotions','pb');  
+    $query->fields('pb');
+    $query->condition("pb.status",'active');
+    $query = $query->extend('PagerDefault')->limit(10); 
+    $isbn_reds = $query->execute()->fetchAll(); //fetchAll
+    $isbn_rec_array = object_to_array($isbn_reds);
+    
+    $options = array();
+    
+   // dpr($isbn_rec_array);die;
+   if($isbn_rec_array){   
+    foreach($isbn_rec_array as $rec){
+        $time_from = $rec['promo_time_from'];
+        
+        $no_of_days = $rec['promo_days'] * 86400;
+        
+
+        $rec['expires'] = date("d-m-Y H:i:s", $time_from + $no_of_days);
+        
+        //echo $time_from + $no_of_days .'-'. time() ; die;
+        //List promo books expire after 2 days i.e (86400 * 2).
+        if((($time_from + $no_of_days) - time()) < (86400 * $exp_days) && (time() < ($time_from + $no_of_days))){       
+            $options[$rec['promo_id']] = $rec; 
+            //$opti[] = $rec['expires'];
+        }       
+    }//END for loop
+    
+    //dpr($options);die;
+   
+   } 
+   return $options;
+}
+
+
+
+
+/**
+ * Implements hook_block_info().
+ */
+function discount_block_info() {
+  $blocks = array();
+  $blocks['discount_shortcut_icon_block'] = array(
+    'info' => t('Show shotcut icons in a Block'),
+  );
+ 
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function discount_block_view($delta='') {
+  $block = array();
+ 
+  switch($delta) {
+    case 'discount_shortcut_icon_block' :
+      $block['content'] = discount_stock_list_update_count_block_view() . " " .discount_promo_block_view();
+      break;
+  } 
+  return $block;
+}
+ 
+
+
+/**
+ * Implements hook_block_configure().
+ */
+function discount_block_configure($delta='') {
+  $form = array();
+ 
+  switch($delta) {
+    case 'discount_shortcut_icon_block' :
+      // Text field form element
+      $form['text_body'] = array(       
+        '#markup' => t('Show Shortcut icons in block'),        
+      );
+      break;
+  }
+  return $form;
+}
+
+/**
+ * Block view showing expiring book count
+ */
+function discount_promo_block_view(){    
+  //Change status of expired books
+  discount_promo_expired_change_status();
+  
+  $exp_days = 2;
+  $exp_days_remain =  discount_find_promo_book_expiring($exp_days); 
+  $nn = count($exp_days_remain);
+  $id = array(
+    'attributes' => array(
+      'id' => 'timer_expire',
+      'title' => 'Promotional Books Expiring' 
+      ));
+      
+  return l($nn,'discount/list_all/promotional_books_expiry', $id);
+}
+
+
+
+/**
+ * Block view showing expiring book count
+ */
+function discount_stock_list_update_count_block_view(){    
+  $td_stock_count =  discount_count_todays_stock_list();  
+  $id = array(
+    'attributes' => array(
+      'id' => 'stock_list_update_count',
+      'title' => 'Downlaod todays stocks' 
+      ));
+      
+  return l($td_stock_count,'discount/download/todays_stocks',$id);
+}
+
+/**
+ * Count todays uploaded stock list. 
+ */
+function discount_count_todays_stock_list(){
+    $yesterday = mktime(23,59,59,date('m'),date('d')-1,date('Y'));//Yesterday end time
+    $today = mktime(23,59,59,date('m'),date('d'),date('Y'));//Today end time
+    
+    $query = db_select("stock",'s');   
+    $query->condition("s.dtime",$yesterday,'>');
+    $query->condition("s.dtime",$today ,'<');
+    $query->groupBy('s.source');
+    $results = $query->countQuery()->execute()->fetchField();
+    return $results;
+    
+    /*
+      $yesterday = mktime(23,59,59,date('m'),date('d')-1,date('Y'));//Yesterday end time
+    $today = mktime(23,59,59,date('m'),date('d'),date('Y'));//Today end time
+    
+    $query = db_select("stock",'s');
+    $query->fields('s');
+    $query->condition("s.dtime",$yesterday,'>');
+    $query->condition("s.dtime",$today ,'<');
+  $query->groupBy('s.source');
+    //dpq($query);
+  $results = $query->countQuery()->execute()->fetchField();
+    */
+}
+
+
+/**
+ * Change status of expired books.
+ */
+function discount_promo_expired_change_status(){
+    $update_values = array('status' => 'inactive');
+    
+    $time = time();    
+    $query = db_update('ebay_books_promotions'); 
+    $query->fields($update_values);    
+    $query->where("$time > (promo_days *(86400) + promo_time_from)" ); //dpq($query);
+    $query->execute(); 
+}
+
+
+function discount_modal_callback($distributor_id,$js = NULL){
+  ctools_include('ajax');
+  ctools_include('modal');
+  ctools_modal_add_js();
+  $distributor_id= $_GET['distributor_id'];
+  
+  $form_state = array(
+  'title' => t('distributor_edit_form'),
+  'ajax' => TRUE,
+  );
+  $form_state['values']['test']=$distributor_id;
+  $output = ctools_modal_form_wrapper('distributor_edit_form',$form_state);
+
+  if (!empty($form_state['executed'])) {
+  // We'll just overwrite the form output if it was successful.
+  $output = array();
+  $output[] = ctools_modal_command_dismiss(t('Success!'));
+  }
+ 
+  //ctools_modal_render(t('Modal Window Title'),t('Hello World'));
+  //ctools_modal_render($title, $output);
+  print ajax_render($output);
+ 
+  exit;
+}
+function distributor_edit_form($form,&$form_state){
+  
+  $form['#method'] = 'GET';
+  $form['distributor_id'] = array(
+    '#type' => 'hidden',
+    '#value' =>$distributor_id,
+     
+  );
+  $form['discount'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Enter New Discount'),
+    '#default_value'=>$distributor_id,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
+}

@@ -1,0 +1,95 @@
+#block-nice-menus-1{
+    margin-top:32px;
+     clear: both;
+}
+ul.nice-menu-down li.menuparent{
+    background-color: transparent!important;
+    margin-right: 10px;
+    font-weight: bold;
+    /*border-radius: 10px 10px 10px 10px; 02a2ff 0071B3*/
+}
+ul.nice-menu li{
+    background:#48A9E4!important; 
+    font-weight: normal;
+}
+#nice-menu-1{
+    font-size: 15px;
+}
+ul.nice-menu a {
+    color: #FFFEFF !important;
+    display: block;
+}
+#name-and-slogan{
+  float:left;
+  clear:both;
+  width: 35%;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.region-header{
+    float: left;
+    margin: 0 !important;
+}
+body{
+    padding-top: 43px !important;
+}
+#next{
+  float: right;
+  font-size: 24pt;
+  text-align: right;
+  width: 100%;
+}
+#nextmain{
+  width: 35%;
+ 
+}
+#nextmain2{
+  float: right;
+  font-size: 14pt;
+  width: 9%;
+}
+#nextmain3 {
+width: 72%;
+}
+#pro_all_rt {
+	float:right;
+}
+#backs{
+  float: left;
+  font-size: 22pt;
+  text-align: left;
+  width: 100%;
+}
+#backs2 {
+float: left;
+font-size: 14pt;
+text-align: left;
+width: 62%;
+}
+.isbn-filter-option{
+    width: 418px;
+}
+#qty_over{
+    width: 48px;
+}
+#ad_cur{
+  position: absolute;
+margin-top: -40px;
+margin-left: 216px;
+
+
+}
+#nextmainpost {
+width: 30%;
+float: left;
+margin-top: -280px;
+margin-left: 767px;
+font-size: 19px;
+}
+#nextmainpost2{
+width: 24%;
+float: left;
+margin-top: -280px;
+margin-left: 406px;
+font-size: 19px;
+}
